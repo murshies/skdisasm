@@ -23398,7 +23398,10 @@ Sonic_ShieldMoves:
 		tst.b	double_jump_flag(a0)		; is Sonic currently performing a double jump?
 		bne.w	locret_11A14			; if yes, branch
 		move.b	(Ctrl_1_pressed_logical).w,d0
-		andi.b	#button_A_mask|button_B_mask|button_C_mask,d0	; are buttons A, B, or C being pressed?
+		andi.b	#button_C_mask,d0	; is C being pressed?
+		bne.w   Sonic_CheckTransform ; if yes, branch
+		move.b	(Ctrl_1_pressed_logical).w,d0
+		andi.b	#button_A_mask|button_B_mask,d0	; are buttons A or B being pressed?
 		beq.w	locret_11A14			; if not, branch
 		bclr	#Status_RollJump,status(a0)
 		tst.b	(Super_Sonic_Knux_flag).w	; check Super-state
@@ -23443,7 +23446,7 @@ Sonic_LightningShield:
 
 Sonic_BubbleShield:
 		btst	#Status_BublShield,status_secondary(a0)	; does Sonic have a Bubble Shield?
-		beq.s	Sonic_CheckTransform			; if not, branch
+		beq.s	Sonic_InstaShield			; if not, branch
 		move.b	#1,(Shield+anim).w
 		move.b	#1,double_jump_flag(a0)
 		move.w	#0,x_vel(a0)		; halt horizontal speed...
@@ -23457,6 +23460,8 @@ Sonic_BubbleShield:
 ; ---------------------------------------------------------------------------
 
 Sonic_CheckTransform:
+		tst.b	(Super_Sonic_Knux_flag).w	; check Super-state
+		bne.s	locret_11A14				; if yes, branch
 		cmpi.b	#7,(Super_emerald_count).w	; does Sonic have all 7 Super Emeralds?
 		bhs.s	loc_119E8			; if yes, branch
 		cmpi.b	#7,(Chaos_emerald_count).w	; does Sonic have all 7 Chaos Emeralds?
@@ -23467,6 +23472,9 @@ Sonic_CheckTransform:
 loc_119E8:
 		cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
 		blo.s	Sonic_InstaShield	; if not, perform Insta-Shield
+		move.b	(Ctrl_1_pressed_logical).w,d0
+		andi.b	#button_C_mask,d0	; is C being pressed?
+		beq.s	Sonic_InstaShield	; if not, perform Insta-Shield
 		tst.b	(Update_HUD_timer).w
 		bne.s	Sonic_Transform
 
@@ -28628,6 +28636,8 @@ Tails_Test_For_Flight:
 		beq.w	locret_151A2
 		cmpi.w	#2,(Player_mode).w
 		bne.s	loc_15156
+		andi.b	#button_C_mask,d0	; is C being pressed?
+		beq.s	loc_1515C
 		tst.b	(Super_Tails_flag).w
 		bne.s	loc_1515C
 		cmpi.b	#7,(Super_emerald_count).w
@@ -32542,6 +32552,8 @@ Knux_Test_For_Glide:
 		move.b	(Ctrl_1_pressed_logical).w,d0
 		andi.b	#button_A_mask|button_B_mask|button_C_mask,d0
 		beq.w	locret_178CC
+		andi.b	#button_C_mask,d0 ; is C being pressed?
+		beq.s	loc_1786C
 		tst.b	(Super_Sonic_Knux_flag).w
 		bne.s	loc_1786C
 		cmpi.b	#7,(Super_emerald_count).w
