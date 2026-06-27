@@ -23465,16 +23465,16 @@ Sonic_CheckTransform:
 		cmpi.b	#7,(Super_emerald_count).w	; does Sonic have all 7 Super Emeralds?
 		bhs.s	loc_119E8			; if yes, branch
 		cmpi.b	#7,(Chaos_emerald_count).w	; does Sonic have all 7 Chaos Emeralds?
-		blo.s	Sonic_InstaShield		; if not, branch
+		blo.w	Sonic_FireShield		; if not, branch
 		tst.b	(Emeralds_converted_flag).w
-		bne.s	Sonic_InstaShield
+		bne.w	Sonic_FireShield
 
 loc_119E8:
 		cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
-		blo.s	Sonic_InstaShield	; if not, perform Insta-Shield
+		blo.w	Sonic_FireShield	; if not, perform Insta-Shield
 		move.b	(Ctrl_1_pressed_logical).w,d0
 		andi.b	#button_C_mask,d0	; is C being pressed?
-		beq.s	Sonic_InstaShield	; if not, perform Insta-Shield
+		beq.w	Sonic_FireShield	; if not, perform Insta-Shield
 		tst.b	(Update_HUD_timer).w
 		bne.s	Sonic_Transform
 
