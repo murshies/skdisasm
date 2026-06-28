@@ -23461,7 +23461,7 @@ Sonic_BubbleShield:
 
 Sonic_CheckTransform:
 		tst.b	(Super_Sonic_Knux_flag).w	; check Super-state
-		bne.s	locret_11A14				; if yes, branch
+		bne.w	SonicKnux_SuperHyper.revertToNormal				; if yes, branch
 		cmpi.b	#7,(Super_emerald_count).w	; does Sonic have all 7 Super Emeralds?
 		bhs.s	loc_119E8			; if yes, branch
 		cmpi.b	#7,(Chaos_emerald_count).w	; does Sonic have all 7 Chaos Emeralds?
@@ -23485,6 +23485,7 @@ Sonic_InstaShield:
 		move.b	#1,double_jump_flag(a0)
 		move.w	#sfx_InstaAttack,d0
 		jmp	(Play_SFX).l
+
 ; ---------------------------------------------------------------------------
 
 locret_11A14:
@@ -28637,9 +28638,9 @@ Tails_Test_For_Flight:
 		cmpi.w	#2,(Player_mode).w
 		bne.s	loc_15156
 		andi.b	#button_C_mask,d0	; is C being pressed?
-		beq.s	loc_1515C
-		tst.b	(Super_Tails_flag).w
-		bne.s	loc_1515C
+		beq.s	loc_1515C			; if not, branch
+		tst.b	(Super_Tails_flag).w ; check Super-state
+		bne.w	SonicKnux_SuperHyper.revertToNormal	; if yes, branch
 		cmpi.b	#7,(Super_emerald_count).w
 		blo.s	loc_1515C
 		cmpi.w	#50,(Ring_count).w
@@ -32555,7 +32556,7 @@ Knux_Test_For_Glide:
 		andi.b	#button_C_mask,d0 ; is C being pressed?
 		beq.s	loc_1786C
 		tst.b	(Super_Sonic_Knux_flag).w
-		bne.s	loc_1786C
+		bne.w	SonicKnux_SuperHyper.revertToNormal
 		cmpi.b	#7,(Super_emerald_count).w
 		bhs.s	loc_1785E
 		cmpi.b	#7,(Chaos_emerald_count).w
