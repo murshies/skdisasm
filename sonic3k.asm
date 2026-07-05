@@ -180648,7 +180648,8 @@ WarpToSaveSelect:
 		clr.b	(Water_full_screen_flag).w
 		clr.b	(Water_flag).w		; Both water flags cleared
 		move.b	#$4C,(Game_mode).w		; Game Mode 4C is the save select
-		rts
+		moveq	#signextendB(sfx_EnterSS),d0
+		jmp	(Play_SFX).l
 ;  End of function WarpToSaveSelect
 
 ; =============== S U B R O U T I N E =======================================
