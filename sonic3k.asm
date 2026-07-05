@@ -16029,6 +16029,10 @@ SaveScreen:
 		move.w	#$9280,(a6)
 		clearRAM	Sprite_table_input,$400
 		clearRAM	Object_RAM,(Kos_decomp_buffer-Object_RAM)
+		clearRAM	Tails_CPU_interact,$100	; Clear active play variables
+		clearRAM	Camera_RAM,$100	; Clear play positional values
+		jsr	(Init_SpriteTable).l		; Initialize the sprite table
+		clearRAM	Normal_palette,$100	; Clear main palette
 		clr.w	(DMA_queue).w
 		move.l	#DMA_queue,(DMA_queue_slot).w
 		clr.w	(Level_frame_counter).w
@@ -91530,8 +91534,7 @@ loc_45B94:
 		jsr	(Play_Music).l
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
-		move.w	#$A01,d0
-		jmp	(StartNewLevel).l
+		jmp	(WarpToSaveSelect).l ; Knuckles Hidden Palace complete
 ; ---------------------------------------------------------------------------
 
 loc_45BC8:
@@ -91724,8 +91727,7 @@ loc_45D8A:
 		jsr	(Play_Music).l
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
-		move.w	#$A00,d0
-		jmp	(StartNewLevel).l
+		jmp	(WarpToSaveSelect).l ; Sonic/Tails Hidden Palace complete
 ; ---------------------------------------------------------------------------
 
 locret_45DAC:
@@ -108146,8 +108148,7 @@ loc_523CA:
 		bhs.s	locret_523EA
 		moveq	#signextendB(cmd_FadeOut),d0
 		jsr	(Play_Music).l
-		move.w	#$500,d0		; Start Ice Cap
-		jmp	(StartNewLevel).l
+		jmp	(WarpToSaveSelect).l ; Carnival Night complete
 ; ---------------------------------------------------------------------------
 
 locret_523EA:
@@ -117294,8 +117295,7 @@ loc_581D2:
 		bne.s	locret_581F0
 		moveq	#signextendB(cmd_FadeOut),d0
 		jsr	(Play_Music).l
-		move.w	#$B00,d0
-		jmp	(StartNewLevel).l
+		jmp	(WarpToSaveSelect).l ; Sonic/Tails Sky Santuary complete
 ; ---------------------------------------------------------------------------
 
 locret_581F0:
@@ -138344,9 +138344,7 @@ loc_695AE:
 		addi.w	#$1E6,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		bhi.w	locret_69366
-		move.w	#$100,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Angel Island complete
 ; ---------------------------------------------------------------------------
 
 loc_695CE:
@@ -141657,9 +141655,7 @@ loc_6B8C8:
 		bne.s	loc_6B8C2
 		subq.w	#1,$2E(a0)
 		bpl.s	loc_6B8B2
-		move.w	#$200,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Hydrocity complete
 
 ; =============== S U B R O U T I N E =======================================
 
@@ -143904,9 +143900,7 @@ loc_6D128:
 		blo.w	locret_6BF96
 
 loc_6D13C:
-		move.w	#$300,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Marble Garden complete
 ; ---------------------------------------------------------------------------
 word_6D14C:
 		dc.w     $A
@@ -146109,9 +146103,7 @@ loc_6E80C:
 		addi.w	#$20,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		blo.w	locret_6E4C4
-		move.w	#$500,d0
-		jsr	(StartNewLevel).l
-		jmp	(Go_Delete_Sprite_2).l
+		jsr	(WarpToSaveSelect).l ; Sonic/Tails Carnival Night complete
 ; ---------------------------------------------------------------------------
 
 loc_6E82C:
@@ -148971,9 +148963,7 @@ loc_7092A:
 ; ---------------------------------------------------------------------------
 
 loc_70938:
-		move.w	#$800,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Flying Battery complete
 ; ---------------------------------------------------------------------------
 
 loc_70948:
@@ -152246,9 +152236,7 @@ loc_72CDA:
 		addi.w	#$120,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		bhi.w	locret_72B02
-		move.w	#$700,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l	; Sonic/Tails Launch Base complete
 ; ---------------------------------------------------------------------------
 
 loc_72CFA:
@@ -154864,9 +154852,7 @@ loc_7498E:
 		addi.w	#$200,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		bhi.w	locret_74374
-		move.w	#$700,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Knuckles Launch Base complete
 ; ---------------------------------------------------------------------------
 
 loc_749AE:
@@ -157270,9 +157256,7 @@ loc_76456:
 ; ---------------------------------------------------------------------------
 
 loc_7645E:
-		move.w	#$400,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Mushroom Hill complete
 ; ---------------------------------------------------------------------------
 
 loc_7646E:
@@ -159100,9 +159084,7 @@ loc_77A10:
 ; ---------------------------------------------------------------------------
 
 loc_77A2E:
-		move.w	#$900,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Sandopolis complete
 ; ---------------------------------------------------------------------------
 
 loc_77A3E:
@@ -159117,9 +159099,7 @@ loc_77A3E:
 ; ---------------------------------------------------------------------------
 
 loc_77A5E:
-		move.w	#$900,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l ; Sandopolis complete
 ; ---------------------------------------------------------------------------
 
 loc_77A6E:
@@ -171532,15 +171512,13 @@ loc_803D6:
 		bhs.s	loc_8040C
 		cmpi.b	#7,(Chaos_emerald_count).w
 		bne.s	loc_8040C
-		move.w	#$C00,d0
-		jmp	(StartNewLevel).l
+		jmp	(WarpToSaveSelect).l ; Death Egg complete - to Doomsday
 ; ---------------------------------------------------------------------------
 
 loc_8040C:
 		cmpi.w	#3,(Player_mode).w
 		beq.s	loc_8041E
-		move.w	#$D01,d0
-		jmp	(StartNewLevel).l
+		jmp	(WarpToSaveSelect).l	; Death Egg complete - to credits
 ; ---------------------------------------------------------------------------
 
 loc_8041E:
@@ -173824,9 +173802,7 @@ loc_81CA4:
 		bpl.w	locret_82ABA
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
-		move.w	#$D01,d0
-		jsr	(StartNewLevel).l
-		jmp	(Delete_Current_Sprite).l
+		jsr	(WarpToSaveSelect).l	; Doomsday complete
 ; ---------------------------------------------------------------------------
 
 loc_81CC6:
@@ -180656,6 +180632,24 @@ StartNewLevel:
 		rts
 ; End of function StartNewLevel
 
+
+; =============== S U B R O U T I N E =======================================
+
+WarpToSaveSelect:
+		clr.b	(Current_zone_and_act).w
+		clr.b	(Apparent_zone_and_act).w
+		clr.b	(Saved_zone_and_act).w
+		clr.b	(Saved_apparent_zone_and_act).w
+		clr.b	(Saved2_zone_and_act).w
+		clr.b	(Saved2_apparent_zone_and_act).w
+		clr.b	(Last_star_post_hit).w
+		clr.b	(Special_bonus_entry_flag).w
+		clr.w	(Player_mode).w
+		clr.b	(Water_full_screen_flag).w
+		clr.b	(Water_flag).w		; Both water flags cleared
+		move.b	#$4C,(Game_mode).w		; Game Mode 4C is the save select
+		rts
+;  End of function WarpToSaveSelect
 
 ; =============== S U B R O U T I N E =======================================
 
@@ -189925,8 +189919,7 @@ loc_8B626:
 		jsr	CreateChild1_Normal(pc)
 		btst	#7,subtype(a0)
 		beq.s	loc_8B652
-		move.w	#$600,d0
-		jsr	StartNewLevel(pc)
+		jsr	WarpToSaveSelect
 
 loc_8B652:
 		jmp	(Go_Delete_Sprite).l
