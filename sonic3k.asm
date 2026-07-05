@@ -128288,37 +128288,8 @@ loc_6170A:
 		bhs.s	locret_61708		; If player has died for whatever reason, don't do anything
 		moveq	#signextendB(sfx_BigRing),d0
 		jsr	(Play_SFX).l		; Play the ring swish sound
-		cmpi.b	#7,(Chaos_emerald_count).w
-		bne.s	loc_6173A			; If Chaos Emeralds aren't collected, branch
-		tst.w	(SK_alone_flag).w
-		bne.s	loc_61794			; If only Sonic & Knuckles and the emeralds are collected, go claim 50 rings
-		bsr.w	SSEntry_CheckLevel
-		beq.s	loc_61794			; Otherwise, only do so if on an S3 level
-		cmpi.b	#7,(Super_emerald_count).w
-		beq.s	loc_61794			; Only collect rings in an SK level if the Super Emeralds are collected as well
+		bra.s	loc_61794
 
-loc_6173A:
-		move.b	#4,routine(a0)
-		move.b	#-1,(Player_prev_frame).w	; Make the player disappear and lock input
-		lea	(Player_1).w,a1
-		move.b	#0,mapping_frame(a1)
-		move.b	#$1C,anim(a1)
-		move.b	#$53,object_control(a1)
-		tst.b	(Flying_carrying_Sonic_flag).w
-		beq.s	loc_61778
-		lea	(Player_2).w,a1
-		move.b	#0,mapping_frame(a1)
-		move.b	#$1C,anim(a1)
-		move.b	#$53,object_control(a1)		; Lock both players, etc.
-
-loc_61778:
-		jsr	(AllocateObject).l
-		bne.s	locret_6178A
-		move.l	#Obj_SSEntryFlash,(a1)
-		move.w	a0,parent3(a1)			; Set ring as parent
-
-locret_6178A:
-		rts
 ; ---------------------------------------------------------------------------
 SSEntry_Range:
 		dc.w   -$18,   $30,  -$28,   $50
