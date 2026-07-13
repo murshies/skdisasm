@@ -16239,7 +16239,7 @@ loc_C890:
 	endif
 		move.w	#VRAM_Plane_A_Name_Table+$21A,d7
 		lea	(Saved_data).w,a0
-		moveq	#8-1,d6
+		moveq	#3-1,d6			; modified from 8-1 to 3-1 to remove "NEW" text from extra save slots
 
 loc_C8B2:
 		lea	(MapUnc_SaveScreenNEW).l,a1
@@ -16666,7 +16666,7 @@ loc_D212:
 		beq.s	loc_D254
 
 loc_D238:
-		tst.b	(Dataselect_entry).w
+		cmpi.b	#1,(Dataselect_entry).w
 		beq.s	loc_D254
 		subq.b	#1,(Dataselect_entry).w
 		moveq	#signextendB(sfx_SlotMachine),d0
@@ -16681,7 +16681,7 @@ loc_D24C:
 loc_D254:
 		btst	#button_right,(Ctrl_1_pressed).w
 		beq.s	loc_D27A
-		cmpi.b	#9,(Dataselect_entry).w
+		cmpi.b	#3,(Dataselect_entry).w
 		beq.s	loc_D27A
 		addq.b	#1,(Dataselect_entry).w
 		moveq	#signextendB(sfx_SlotMachine),d0
