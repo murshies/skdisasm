@@ -337,7 +337,8 @@ Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
 			ds.w 1				; unused
 Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and special stage results.
-			ds.b $44			; unused
+			ds.b $38			; unused
+Archipelago_Level_Unlocks		ds.l $3 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order.
 Saved_data :=			*		; S3 uses a different address
 				ds.b $54		; saved data from 1 player mode
 Ring_status_table		ds.b $400		; 1 word per ring

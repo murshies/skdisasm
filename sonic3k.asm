@@ -16332,6 +16332,22 @@ DataSelect_Zone_Nums:
 		dc.b    1,   2	; 12
 		dc.b    1,   3	; 13
 		dc.b    1,   4	; 14
+
+		;;  Special Stages
+		dc.b    1,   5	; 15
+		dc.b    1,   6	; 16
+		dc.b    1,   7	; 17
+		dc.b    1,   8	; 18
+		dc.b    1,   9	; 19
+		dc.b    2,   0	; 20
+		dc.b    2,   1	; 21
+		dc.b    2,   2	; 22
+		dc.b    2,   3	; 23
+		dc.b    2,   4	; 24
+		dc.b    2,   5	; 25
+		dc.b    2,   6	; 26
+		dc.b    2,   7	; 27
+		dc.b    2,   8	; 28
 ; ---------------------------------------------------------------------------
 
 loc_C97A:
@@ -17563,9 +17579,11 @@ BlankSave_Text:
 ;byte_DB31
 D_S_Zone_Text:
 		dc.b  "ZONE", $FF
+Special_Stage_Text:
+		dc.b "SPEC", $FF
 ;byte_DB36
 Clear_Text:
-		dc.b  "CLEAR", $FF
+		dc.b  "RANDO", $FF
 		even
 		restore
 ; =============== S U B R O U T I N E =======================================
