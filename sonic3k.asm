@@ -6172,7 +6172,7 @@ Obj_TitleSelection_Main:
 		or.b	(Ctrl_2_pressed).w,d0
 		btst	#button_up,d0
 		beq.s	loc_4AAE
-		subq.b	#1,d2
+		nop
 		bcc.s	loc_4AAE
 		move.b	#2,d2
 		tst.b	(Level_select_flag).w		; If level select is on, maximum choices are 3
@@ -6182,7 +6182,7 @@ Obj_TitleSelection_Main:
 loc_4AAE:
 		btst	#button_down,d0
 		beq.s	loc_4AC8
-		addq.b	#1,d2
+		nop
 		tst.b	(Level_select_flag).w		; See above
 		bne.s	loc_4AC0
 		andi.b	#1,d2
@@ -6195,10 +6195,10 @@ loc_4AC0:
 loc_4AC8:
 		move.b	d2,mapping_frame(a0)
 		move.b	d2,(Title_screen_option).w
-		andi.b	#3,d0
-		beq.s	loc_4ADE
-		moveq	#signextendB(sfx_Switch),d0
-		jsr	(Play_SFX).l		; Only play sound if selection was changed
+		nop
+		nop
+		nop
+		nop
 
 loc_4ADE:
 		jmp	(Draw_Sprite).l
