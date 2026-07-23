@@ -1550,13 +1550,16 @@ Pause_Main:
 Pause_Loop:
 		move.b	#$10,(V_int_routine).w
 		bsr.w	Wait_VSync
-		tst.b	(Slow_motion_flag).w
-		beq.s	Pause_NoSlowMo
 		btst	#button_A,(Ctrl_1_pressed).w
-		beq.s	Pause_ChkFrameAdvance	; branch if A isn't pressed
-		move.b	#4,(Game_mode).w	; set to title screen
+		beq.s	Pause_SloMoCheck	; branch if A isn't pressed
+		move.b	#$4C,(Game_mode).w	; set to save select screen
 		nop
 		bra.s	Pause_ResumeMusic
+
+Pause_SloMoCheck:
+		tst.b	(Slow_motion_flag).w
+		beq.s	Pause_NoSlowMo
+
 ; ---------------------------------------------------------------------------
 
 Pause_ChkFrameAdvance:
@@ -15671,6 +15674,10 @@ SaveData_S3LevRef:
 ; =============== S U B R O U T I N E =======================================
 
 
+; Parameters:
+; a0: SRAM source address
+; a2: RAM dest address
+; d0: Size of data to read
 Get_From_SRAM:
 		movea.l	a2,a3
 		move.w	d0,d2
