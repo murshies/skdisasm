@@ -15551,7 +15551,7 @@ SRAM_Load:
 		moveq	#bytesToWcnt(SRAM_competition_size),d0
 		move.w	#$4C44,d1		; RAM integrity value
 		jsr	Get_From_SRAM(pc)
-		beq.s	loc_C190		; If the data read was successful, branch
+		beq.s	Archipelago_Load_Lvl_Bitmask		; If the data read was successful, branch
 		lea	SaveData_GeneralDefault(pc),a0
 		lea	(Competition_saved_data).w,a1
 		moveq	#bytesToWcnt($52),d0
@@ -15560,6 +15560,28 @@ loc_C186:
 		move.w	(a0)+,(a1)+		; Reset the general save data to the default
 		dbf	d0,loc_C186
 		jsr	Write_SaveGeneral2(pc)	; Write default data back to SRAM
+
+Archipelago_Load_Lvl_Bitmask:
+		lea (SRAM_Archipelago_Lvl_Bitmasks).l,a0
+		lea (SRAM_Archipelago_Lvl_Bitmasks_backup).l,a1
+		lea (Archipelago_Level_Unlocks).w,a2
+		moveq	#bytesToWcnt(SRAM_Archipelago_Lvl_size),d0
+		move #$4150,d1			; RAM integrity value
+		jsr Get_From_SRAM(pc)
+		beq.s loc_C190			; Branch if successfully read
+		lea SaveData_Archipelago_Lvl_Bitmasks(pc),a0
+		lea (Archipelago_Level_Unlocks).w,a1
+		moveq	#bytesToWcnt(8),d0
+
+Archipelago_Reset_Lvl_Bitmasks:
+		move.w (a0)+,(a1)+
+		dbf d0,Archipelago_Reset_Lvl_Bitmasks
+		;; TODO: Set parameters for Write_SRAM
+		move.w	SRAM_Archipelago_Lvl_Bitmasks,a0
+		move.w	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
+		move.w	Archipelago_Level_Unlocks,a2
+		move.w	#$14,d0
+		jsr Write_SRAM(pc)	; Write default bitmasks back to SRAM
 
 loc_C190:
 		lea	(SRAM_SKgame).l,a0
@@ -15660,6 +15682,11 @@ SaveData_GameDefault:
 		dc.w  $8000,     0,     0,     0,  $300
 		dc.w  $8000,     0,     0,     0,  $300
 		dc.w  $4244
+SaveData_Archipelago_Lvl_Bitmasks:
+		dc.w	0,	0
+		dc.w	0,	0
+		dc.w	0,	0
+		dc.w	$4150
 SaveData_S3LevRef:
 		dc.b    0
 		dc.b    1
@@ -15676,8 +15703,10 @@ SaveData_S3LevRef:
 
 ; Parameters:
 ; a0: SRAM source address
+; a1: SRAM backup data source address
 ; a2: RAM dest address
 ; d0: Size of data to read
+; d1: RAM integrity value
 Get_From_SRAM:
 		movea.l	a2,a3
 		move.w	d0,d2
@@ -15696,6 +15725,10 @@ Get_From_SRAM:
 ; =============== S U B R O U T I N E =======================================
 
 
+; RAM layout is as follows:
+; X bytes: data to be read
+; 2 bytes: RAM integrity value
+; 2 bytes: checksum, which is computed including the RAM integrity value
 Read_SRAM:
 		tst.w	(SRAM_mask_interrupts_flag).w
 		beq.s	loc_C32A
@@ -15750,6 +15783,11 @@ Create_SRAMChecksum:
 ; =============== S U B R O U T I N E =======================================
 
 
+; Parameters:
+; a0: SRAM dest address
+; a1: SRAM backup dest address
+; a2: RAM source address
+; d0: Size of data, including RAM integrity value and checksum
 Write_SRAM:
 		movea.l	a2,a6
 		move.w	d0,d6

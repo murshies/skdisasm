@@ -255,7 +255,7 @@ PSG_input =			$C00011
 SRAM_competition_size =	$15*4	; $54 bytes
 SRAM_S3game_size = $D*4	; $34 bytes
 SRAM_SKgame_size = $15*4	; $54 bytes
-SRAM_Archipelago_Lvl_size = 4*3	; $C bytes
+SRAM_Archipelago_Lvl_size = 4*4	; $10 bytes
 
 	phase $200001
 SRAM_start	=		*
@@ -272,9 +272,9 @@ SRAM_SKgame	ds.w SRAM_SKgame_size	; $54 bytes
 	ds.w 2	; unused
 SRAM_SKgame_backup	ds.w SRAM_SKgame_size	; $54 bytes
 	ds.w 2	; unused
-SRAM_Archipelago_Lvl_Bitmasks ds.w SRAM_Archipelago_Lvl_Bitmasks ; C bytes
+SRAM_Archipelago_Lvl_Bitmasks ds.w SRAM_Archipelago_Lvl_size ; $10 bytes
 	ds.w 2	; unused
-SRAM_Archipelago_Lvl_Bitmasks_backup ds.w SRAM_Archipelago_Lvl_Bitmasks ; C bytes
+SRAM_Archipelago_Lvl_Bitmasks_backup ds.w SRAM_Archipelago_Lvl_size ; $10 bytes
 	ds.w $15	; unused
 SRAM_end	=		*
 	dephase
@@ -342,8 +342,8 @@ Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
 			ds.w 1				; unused
 Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and special stage results.
-			ds.b $38			; unused
-Archipelago_Level_Unlocks		ds.l $3 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order.
+			ds.b $34			; unused
+Archipelago_Level_Unlocks		ds.b $10 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order, plus two more word for the RAM integrity value and checksum
 Saved_data :=			*		; S3 uses a different address
 				ds.b $54		; saved data from 1 player mode
 Ring_status_table		ds.b $400		; 1 word per ring
