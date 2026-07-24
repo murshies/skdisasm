@@ -15571,15 +15571,14 @@ Archipelago_Load_Lvl_Bitmask:
 		beq.s loc_C190			; Branch if successfully read
 		lea SaveData_Archipelago_Lvl_Bitmasks(pc),a0
 		lea (Archipelago_Level_Unlocks).w,a1
-		moveq	#bytesToWcnt(8),d0
+		moveq	#bytesToWcnt($E),d0
 
 Archipelago_Reset_Lvl_Bitmasks:
 		move.w (a0)+,(a1)+
 		dbf d0,Archipelago_Reset_Lvl_Bitmasks
-		;; TODO: Set parameters for Write_SRAM
-		move.w	SRAM_Archipelago_Lvl_Bitmasks,a0
-		move.w	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
-		move.w	Archipelago_Level_Unlocks,a2
+		lea	SRAM_Archipelago_Lvl_Bitmasks,a0
+		lea	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
+		lea	Archipelago_Level_Unlocks,a2
 		move.w	#$14,d0
 		jsr Write_SRAM(pc)	; Write default bitmasks back to SRAM
 
