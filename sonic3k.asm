@@ -7891,6 +7891,7 @@ LevelLoop:
 		bsr.w	Wait_VSync
 		addq.w	#1,(Level_frame_counter).w
 		bsr.w	Demo_PlayRecord
+		jsr (Archipelago_Check_Save).l
 		jsr	(Animate_Palette).l
 		jsr	(SpecialEvents).l
 		jsr	(Load_Sprites).l
@@ -15562,25 +15563,21 @@ loc_C186:
 		jsr	Write_SaveGeneral2(pc)	; Write default data back to SRAM
 
 Archipelago_Load_Lvl_Bitmask:
-		lea (SRAM_Archipelago_Lvl_Bitmasks).l,a0
-		lea (SRAM_Archipelago_Lvl_Bitmasks_backup).l,a1
-		lea (Archipelago_Level_Unlocks).w,a2
+		lea	(SRAM_Archipelago_Lvl_Bitmasks).l,a0
+		lea	(SRAM_Archipelago_Lvl_Bitmasks_backup).l,a1
+		lea	(Archipelago_Level_Unlocks).w,a2
 		moveq	#bytesToWcnt(SRAM_Archipelago_Lvl_size),d0
-		move #$4150,d1			; RAM integrity value
-		jsr Get_From_SRAM(pc)
-		beq.s loc_C190			; Branch if successfully read
-		lea SaveData_Archipelago_Lvl_Bitmasks(pc),a0
-		lea (Archipelago_Level_Unlocks).w,a1
+		move	#$4150,d1			; RAM integrity value
+		jsr	Get_From_SRAM(pc)
+		beq.s	loc_C190			; Branch if successfully read
+		lea	SaveData_Archipelago_Lvl_Bitmasks(pc),a0
+		lea	(Archipelago_Level_Unlocks).w,a1
 		moveq	#bytesToWcnt($E),d0
 
 Archipelago_Reset_Lvl_Bitmasks:
-		move.w (a0)+,(a1)+
-		dbf d0,Archipelago_Reset_Lvl_Bitmasks
-		lea	SRAM_Archipelago_Lvl_Bitmasks,a0
-		lea	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
-		lea	Archipelago_Level_Unlocks,a2
-		move.w	#$14,d0
-		jsr Write_SRAM(pc)	; Write default bitmasks back to SRAM
+		move.w	(a0)+,(a1)+
+		dbf	d0,Archipelago_Reset_Lvl_Bitmasks
+		jsr	Write_Archipelago_Bitmasks(pc)
 
 loc_C190:
 		lea	(SRAM_SKgame).l,a0
@@ -16011,6 +16008,28 @@ loc_C524:
 locret_C530:
 		rts
 ; End of function SaveGame_SpecialStage
+
+
+; =============== S U B R O U T I N E =======================================
+
+
+; This subroutine writes Archipelago the level unlock bitmasks to SRAM
+Write_Archipelago_Bitmasks:
+		lea	SRAM_Archipelago_Lvl_Bitmasks,a0
+		lea	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
+		lea	Archipelago_Level_Unlocks,a2
+		move.w	#$14,d0
+		jmp	Write_SRAM(pc)
+
+
+; =============== S U B R O U T I N E =======================================
+
+; This subroutine writes all of the data relevant to Archipelago to SRAM:
+; 1. The level unlock bitmasks added for Archipelago
+; 2. The regular game save data
+Write_Archipelago:
+		jsr	Write_Archipelago_Bitmasks(pc)
+		jsr	Write_SaveGame(pc)
 
 
 ; =============== S U B R O U T I N E =======================================
@@ -18418,6 +18437,20 @@ loc_E988:
 		bls.s	loc_E986
 		move.l	a2,(Ring_end_addr_ROM).w
 		rts
+
+
+; =============== S U B R O U T I N E =======================================
+
+
+Archipelago_Check_Save:
+	tst.b	(Archipelago_Save_Flag).w
+	beq.s	Archipelago_Check_Save_Ret
+	jsr	Write_Archipelago(pc)
+	clr.w	(Archipelago_Save_Flag).w
+
+Archipelago_Check_Save_Ret
+	rts
+
 
 ; =============== S U B R O U T I N E =======================================
 
