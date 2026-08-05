@@ -16222,6 +16222,7 @@ SaveScreen_MainLoop:
 		jsr	(Wait_VSync).l
 		addq.w	#1,(Level_frame_counter).w
 		jsr	(Process_Sprites).l
+		jsr (Archipelago_Check_Save).l
 		move.w	(Camera_X_pos_copy).w,d0
 		neg.w	d0
 		move.w	d0,(H_scroll_buffer+2).w
@@ -16291,6 +16292,7 @@ sub_C87E:
 ; selects whether to display the static screen, or new screen
 ; and is called during vblank
 next_SaveSlot = $A
+next_Archipelago_Level_Bitmask = 4
 
 loc_C890:
 		move.w	(Level_frame_counter).w,d0
@@ -16302,13 +16304,14 @@ loc_C890:
 	endif
 		move.w	#VRAM_Plane_A_Name_Table+$21A,d7
 		lea	(Saved_data).w,a0
+		lea	(Archipelago_Level_Unlocks).w,a4
 		moveq	#3-1,d6			; modified from 8-1 to 3-1 to remove "NEW" text from extra save slots
 
 loc_C8B2:
 		lea	(MapUnc_SaveScreenNEW).l,a1
 		tst.b	(a0)		; is a game in progress?
 		bmi.s	loc_C8BE
-		movea.l	a2,a1
+		movea.l	a2,a1			; yes, game is in progress (any non-new game)
 
 loc_C8BE:
 		move.w	d7,d0
@@ -16322,6 +16325,7 @@ loc_C8BE:
 		lea	(Dynamic_object_RAM+object_size).w,a3	; load the first save slot object
 		move.w	#VRAM_Plane_A_Name_Table+$A20,d7
 		lea	(Saved_data).w,a0
+		lea	(Archipelago_Level_Unlocks).w,a4
 		moveq	#8-1,d3
 
 loc_C8E6:
@@ -16374,6 +16378,7 @@ loc_C94C:
 		addi.w	#$1A,d7
 		lea	next_SaveSlot(a0),a0
 		lea	next_object(a3),a3
+		lea next_Archipelago_Level_Bitmask(a4),a4
 		dbf	d3,loc_C8E6
 		bra.s	loc_C97A
 ; ---------------------------------------------------------------------------
@@ -16417,7 +16422,8 @@ loc_C97A:
 		lea	Map_DataSelect_Player_LivesContinues(pc),a2
 		lea	(Dynamic_object_RAM+object_size).w,a3
 		move.w	#VRAM_Plane_A_Name_Table+$1220,d7
-		lea	(Saved_data).w,a0
+		lea	(Saved_data).w,a0	; a0 is the pointer to the current save slot through the save select code
+		lea	(Archipelago_Level_Unlocks).w,a4 ; pointer to the corresponding Archipelago level bitmask
 		moveq	#8-1,d6
 
 loc_C98C:
@@ -16689,7 +16695,7 @@ ObjDat_SaveScreen:
 		dc.b    7						; Save Slot ID Number
 ; ---------------------------------------------------------------------------
 
-Obj_SaveScreen_Selector:
+Obj_SaveScreen_Selector:		; This is the actual start of handling the interactive parts of the save select
 		move.w	#$A8,d0
 		moveq	#0,d1
 		moveq	#0,d2
@@ -16725,7 +16731,7 @@ loc_D1E6:
 loc_D1FA:
 		tst.w	(Events_bg+$12).w
 		bne.s	loc_D212
-		btst	#button_B,(Ctrl_1_pressed).w
+		btst	#button_B,(Ctrl_1_pressed).w ; Handle going back to the start screen
 		beq.s	loc_D212
 		move.b	#4,(Game_mode).w
 		bra.w	loc_D2CE
@@ -17158,6 +17164,28 @@ Set_ChildSprites:
 
 loc_D6CA:
 		jmp	(Draw_Sprite).l
+
+; =============== S U B R O U T I N E =======================================
+
+	;; Parameters:
+	;; d1: contains the current level selected
+	;; d4: contains the direction in which to switch the level. 1 to move to the next level, and -1 to move to the previous
+	;; This subroutine also relies on Dataselect_entry to know which save slot is currently selected
+	;;
+	;; d1 is modified to have the value of the next level to select
+	;; This subroutine assumes that at least one level is unlocked
+SaveSelect_Next_Unlocked:
+		add.w	d4,d1
+		cmp.w	#-1,d1			; Check for wraparound from lowest to highest level
+		bneq.s	SaveSelect_Next_Unlocked_Check_Overflow
+		move.w	#27,d1
+		bra.s	SaveSelect_Next_Unlocked_Check_Unlocked
+SaveSelect_Next_Unlocked_Check_Overflow:
+		cmp.w	#28,d1
+		bneq.s	SaveSelect_Next_Unlocked_Check_Unlocked
+		move.w	#0,d1
+SaveSelect_Next_Unlocked_Check_Unlocked:
+		;; btst
 
 ; =============== S U B R O U T I N E =======================================
 
