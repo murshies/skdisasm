@@ -17017,7 +17017,9 @@ loc_D4EE:
 		btst	#button_down,d0
 		beq.s	loc_D508
 		moveq	#signextendB(sfx_Switch),d2
-		subq.w	#1,d1
+		;; subq.w	#1,d1
+		moveq	#-1,d4
+		jsr		(SaveSelect_Next_Unlocked).l
 		bpl.s	loc_D518
 		move.w	d6,d1
 		bra.s	loc_D518
@@ -17027,7 +17029,9 @@ loc_D508:
 		btst	#button_up,d0
 		beq.s	loc_D518
 		moveq	#signextendB(sfx_Switch),d2
-		addq.w	#1,d1
+		;; addq.w	#1,d1
+		moveq	#1,d4
+		jsr		(SaveSelect_Next_Unlocked).l
 		cmp.w	d6,d1
 		bls.s	loc_D518
 		moveq	#0,d1
@@ -17174,18 +17178,25 @@ loc_D6CA:
 	;;
 	;; d1 is modified to have the value of the next level to select
 	;; This subroutine assumes that at least one level is unlocked
+	;; d5 and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
 		add.w	d4,d1
 		cmp.w	#-1,d1			; Check for wraparound from lowest to highest level
-		bneq.s	SaveSelect_Next_Unlocked_Check_Overflow
+		bne.s	SaveSelect_Next_Unlocked_Check_Overflow
 		move.w	#27,d1
 		bra.s	SaveSelect_Next_Unlocked_Check_Unlocked
 SaveSelect_Next_Unlocked_Check_Overflow:
 		cmp.w	#28,d1
-		bneq.s	SaveSelect_Next_Unlocked_Check_Unlocked
+		bne.s	SaveSelect_Next_Unlocked_Check_Unlocked
 		move.w	#0,d1
 SaveSelect_Next_Unlocked_Check_Unlocked:
-		;; btst
+		lea		Archipelago_Level_Unlocks,a5
+		move.b	(Dataselect_entry).w,d5
+		sub.w	#1,d5			; First save slot is entry 1, so subtract zero to make a zero-based index
+		lsl.w	#2,d5
+		btst	d1,(a5,d5)
+		beq.s	SaveSelect_Next_Unlocked
+		rts
 
 ; =============== S U B R O U T I N E =======================================
 
