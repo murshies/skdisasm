@@ -17187,7 +17187,7 @@ loc_D6CA:
 	;; d5, d7, and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
 		add.w	d4,d1
-		cmp.w	#-1,d1			; Check for wraparound from lowest to highest level
+		cmp.w	#0,d1			; Check for wraparound from lowest to highest level
 		bpl.s	SaveSelect_Next_Unlocked_Check_Overflow
 		move.w	#27,d1
 		bra.s	SaveSelect_Next_Unlocked_Check_Unlocked
@@ -17203,7 +17203,7 @@ SaveSelect_Next_Unlocked_Check_Unlocked:
 		lea		(a5,d5),a5
 		move.l	(a5),d5
 		btst.l	d1,d5
-		beq.s	SaveSelect_Next_Unlocked
+		bne.s	SaveSelect_Next_Unlocked
 		rts
 
 ; =============== S U B R O U T I N E =======================================
