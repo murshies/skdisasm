@@ -16352,6 +16352,12 @@ loc_C912:
 		move.w	objoff_36(a3),d0
 		add.w	d0,d0
 		moveq	#0,d1
+
+		cmp.w	#14,d0
+		bmi.s	Not_Special_Stage
+		lea		Special_Stage_Text(pc),a1	
+
+Not_Special_Stage:
 		move.b	DataSelect_Zone_Nums(pc,d0.w),d1
 		bpl.s	loc_C932
 		move.w	#high_priority,d1
@@ -17000,15 +17006,15 @@ loc_D4B6:
 ; ---------------------------------------------------------------------------
 
 loc_D4D0:
-		moveq	#$B,d6
-		cmpi.w	#3,$34(a0)
-		beq.s	loc_D4EE
-		moveq	#$C,d6
-		cmpi.w	#2,$34(a0)
-		beq.s	loc_D4EE
-		cmpi.b	#2,$3B(a0)
-		blo.s	loc_D4EE
-		moveq	#$D,d6
+		moveq	#28,d6
+		;; cmpi.w	#3,$34(a0)
+		;; beq.s	loc_D4EE
+		;; moveq	#$C,d6
+		;; cmpi.w	#2,$34(a0)
+		;; beq.s	loc_D4EE
+		;; cmpi.b	#2,$3B(a0)
+		;; blo.s	loc_D4EE
+		;; moveq	#$D,d6
 
 loc_D4EE:
 		moveq	#0,d2
@@ -17018,10 +17024,10 @@ loc_D4EE:
 		beq.s	loc_D508
 		moveq	#signextendB(sfx_Switch),d2
 		;; subq.w	#1,d1
-		moveq	#-1,d4
+		move.w	#-1,d4
 		jsr		(SaveSelect_Next_Unlocked).l
-		bpl.s	loc_D518
-		move.w	d6,d1
+		;; bpl.s	loc_D518
+		;; move.w	d6,d1
 		bra.s	loc_D518
 ; ---------------------------------------------------------------------------
 
@@ -17030,11 +17036,11 @@ loc_D508:
 		beq.s	loc_D518
 		moveq	#signextendB(sfx_Switch),d2
 		;; addq.w	#1,d1
-		moveq	#1,d4
+		move.w	#1,d4
 		jsr		(SaveSelect_Next_Unlocked).l
-		cmp.w	d6,d1
-		bls.s	loc_D518
-		moveq	#0,d1
+		;; cmp.w	d6,d1
+		;; bls.s	loc_D518
+		;; moveq	#0,d1
 
 loc_D518:
 		move.w	d1,$36(a0)
@@ -17178,23 +17184,25 @@ loc_D6CA:
 	;;
 	;; d1 is modified to have the value of the next level to select
 	;; This subroutine assumes that at least one level is unlocked
-	;; d5 and a5 are used for intermediate value computation
+	;; d5, d7, and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
 		add.w	d4,d1
 		cmp.w	#-1,d1			; Check for wraparound from lowest to highest level
-		bne.s	SaveSelect_Next_Unlocked_Check_Overflow
+		bpl.s	SaveSelect_Next_Unlocked_Check_Overflow
 		move.w	#27,d1
 		bra.s	SaveSelect_Next_Unlocked_Check_Unlocked
 SaveSelect_Next_Unlocked_Check_Overflow:
 		cmp.w	#28,d1
-		bne.s	SaveSelect_Next_Unlocked_Check_Unlocked
+		bmi.s	SaveSelect_Next_Unlocked_Check_Unlocked
 		move.w	#0,d1
 SaveSelect_Next_Unlocked_Check_Unlocked:
-		lea		Archipelago_Level_Unlocks,a5
 		move.b	(Dataselect_entry).w,d5
 		sub.w	#1,d5			; First save slot is entry 1, so subtract zero to make a zero-based index
-		lsl.w	#2,d5
-		btst	d1,(a5,d5)
+		lsl.w	#2,d5			; Bit shift to determine how many bytes forward to read for the correct level unlock bitmask
+		lea		Archipelago_Level_Unlocks,a5
+		lea		(a5,d5),a5
+		move.l	(a5),d5
+		btst.l	d1,d5
 		beq.s	SaveSelect_Next_Unlocked
 		rts
 
