@@ -17196,14 +17196,15 @@ SaveSelect_Next_Unlocked_Check_Overflow:
 		bmi.s	SaveSelect_Next_Unlocked_Check_Unlocked
 		move.w	#0,d1
 SaveSelect_Next_Unlocked_Check_Unlocked:
+		move.l	#0,d5
 		move.b	(Dataselect_entry).w,d5
 		sub.w	#1,d5			; First save slot is entry 1, so subtract zero to make a zero-based index
 		lsl.w	#2,d5			; Bit shift to determine how many bytes forward to read for the correct level unlock bitmask
 		lea		Archipelago_Level_Unlocks,a5
-		lea		(a5,d5),a5
+		add		d5,a5
 		move.l	(a5),d5
 		btst.l	d1,d5
-		bne.s	SaveSelect_Next_Unlocked
+		beq.s	SaveSelect_Next_Unlocked
 		rts
 
 ; =============== S U B R O U T I N E =======================================
