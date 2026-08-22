@@ -1550,13 +1550,16 @@ Pause_Main:
 Pause_Loop:
 		move.b	#$10,(V_int_routine).w
 		bsr.w	Wait_VSync
-		tst.b	(Slow_motion_flag).w
-		beq.s	Pause_NoSlowMo
 		btst	#button_A,(Ctrl_1_pressed).w
-		beq.s	Pause_ChkFrameAdvance	; branch if A isn't pressed
-		move.b	#4,(Game_mode).w	; set to title screen
+		beq.s	Pause_SloMoCheck	; branch if A isn't pressed
+		move.b	#$4C,(Game_mode).w	; set to save select screen
 		nop
 		bra.s	Pause_ResumeMusic
+
+Pause_SloMoCheck:
+		tst.b	(Slow_motion_flag).w
+		beq.s	Pause_NoSlowMo
+
 ; ---------------------------------------------------------------------------
 
 Pause_ChkFrameAdvance:
@@ -7888,6 +7891,7 @@ LevelLoop:
 		bsr.w	Wait_VSync
 		addq.w	#1,(Level_frame_counter).w
 		bsr.w	Demo_PlayRecord
+		jsr (Archipelago_Check_Save).l
 		jsr	(Animate_Palette).l
 		jsr	(SpecialEvents).l
 		jsr	(Load_Sprites).l
@@ -15548,7 +15552,7 @@ SRAM_Load:
 		moveq	#bytesToWcnt(SRAM_competition_size),d0
 		move.w	#$4C44,d1		; RAM integrity value
 		jsr	Get_From_SRAM(pc)
-		beq.s	loc_C190		; If the data read was successful, branch
+		beq.s	Archipelago_Load_Lvl_Bitmask		; If the data read was successful, branch
 		lea	SaveData_GeneralDefault(pc),a0
 		lea	(Competition_saved_data).w,a1
 		moveq	#bytesToWcnt($52),d0
@@ -15557,6 +15561,23 @@ loc_C186:
 		move.w	(a0)+,(a1)+		; Reset the general save data to the default
 		dbf	d0,loc_C186
 		jsr	Write_SaveGeneral2(pc)	; Write default data back to SRAM
+
+Archipelago_Load_Lvl_Bitmask:
+		lea	(SRAM_Archipelago_Lvl_Bitmasks).l,a0
+		lea	(SRAM_Archipelago_Lvl_Bitmasks_backup).l,a1
+		lea	(Archipelago_Level_Unlocks).w,a2
+		moveq	#bytesToWcnt(SRAM_Archipelago_Lvl_size),d0
+		move	#$4150,d1			; RAM integrity value
+		jsr	Get_From_SRAM(pc)
+		beq.s	loc_C190			; Branch if successfully read
+		lea	SaveData_Archipelago_Lvl_Bitmasks(pc),a0
+		lea	(Archipelago_Level_Unlocks).w,a1
+		moveq	#bytesToWcnt($E),d0
+
+Archipelago_Reset_Lvl_Bitmasks:
+		move.w	(a0)+,(a1)+
+		dbf	d0,Archipelago_Reset_Lvl_Bitmasks
+		jsr	Write_Archipelago_Bitmasks(pc)
 
 loc_C190:
 		lea	(SRAM_SKgame).l,a0
@@ -15657,6 +15678,11 @@ SaveData_GameDefault:
 		dc.w  $8000,     0,     0,     0,  $300
 		dc.w  $8000,     0,     0,     0,  $300
 		dc.w  $4244
+SaveData_Archipelago_Lvl_Bitmasks:
+		dc.w	0,	0
+		dc.w	0,	0
+		dc.w	0,	0
+		dc.w	$4150
 SaveData_S3LevRef:
 		dc.b    0
 		dc.b    1
@@ -15671,6 +15697,12 @@ SaveData_S3LevRef:
 ; =============== S U B R O U T I N E =======================================
 
 
+; Parameters:
+; a0: SRAM source address
+; a1: SRAM backup data source address
+; a2: RAM dest address
+; d0: Size of data to read
+; d1: RAM integrity value
 Get_From_SRAM:
 		movea.l	a2,a3
 		move.w	d0,d2
@@ -15689,6 +15721,10 @@ Get_From_SRAM:
 ; =============== S U B R O U T I N E =======================================
 
 
+; RAM layout is as follows:
+; X bytes: data to be read
+; 2 bytes: RAM integrity value
+; 2 bytes: checksum, which is computed including the RAM integrity value
 Read_SRAM:
 		tst.w	(SRAM_mask_interrupts_flag).w
 		beq.s	loc_C32A
@@ -15743,6 +15779,11 @@ Create_SRAMChecksum:
 ; =============== S U B R O U T I N E =======================================
 
 
+; Parameters:
+; a0: SRAM dest address
+; a1: SRAM backup dest address
+; a2: RAM source address
+; d0: Size of data, including RAM integrity value and checksum
 Write_SRAM:
 		movea.l	a2,a6
 		move.w	d0,d6
@@ -15972,6 +16013,28 @@ locret_C530:
 ; =============== S U B R O U T I N E =======================================
 
 
+; This subroutine writes Archipelago the level unlock bitmasks to SRAM
+Write_Archipelago_Bitmasks:
+		lea	SRAM_Archipelago_Lvl_Bitmasks,a0
+		lea	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
+		lea	Archipelago_Level_Unlocks,a2
+		move.w	#$14,d0
+		jmp	Write_SRAM(pc)
+
+
+; =============== S U B R O U T I N E =======================================
+
+; This subroutine writes all of the data relevant to Archipelago to SRAM:
+; 1. The level unlock bitmasks added for Archipelago
+; 2. The regular game save data
+Write_Archipelago:
+		jsr	Write_Archipelago_Bitmasks(pc)
+		jsr	Write_SaveGame(pc)
+
+
+; =============== S U B R O U T I N E =======================================
+
+
 SaveGame_LivesContinues:
 		tst.w	(SK_alone_flag).w
 		bne.s	locret_C56C		; If playing Sonic and Knuckles, don't bother
@@ -16159,6 +16222,7 @@ SaveScreen_MainLoop:
 		jsr	(Wait_VSync).l
 		addq.w	#1,(Level_frame_counter).w
 		jsr	(Process_Sprites).l
+		jsr (Archipelago_Check_Save).l
 		move.w	(Camera_X_pos_copy).w,d0
 		neg.w	d0
 		move.w	d0,(H_scroll_buffer+2).w
@@ -16228,6 +16292,7 @@ sub_C87E:
 ; selects whether to display the static screen, or new screen
 ; and is called during vblank
 next_SaveSlot = $A
+next_Archipelago_Level_Bitmask = 4
 
 loc_C890:
 		move.w	(Level_frame_counter).w,d0
@@ -16239,13 +16304,14 @@ loc_C890:
 	endif
 		move.w	#VRAM_Plane_A_Name_Table+$21A,d7
 		lea	(Saved_data).w,a0
+		lea	(Archipelago_Level_Unlocks).w,a4
 		moveq	#3-1,d6			; modified from 8-1 to 3-1 to remove "NEW" text from extra save slots
 
 loc_C8B2:
 		lea	(MapUnc_SaveScreenNEW).l,a1
 		tst.b	(a0)		; is a game in progress?
 		bmi.s	loc_C8BE
-		movea.l	a2,a1
+		movea.l	a2,a1			; yes, game is in progress (any non-new game)
 
 loc_C8BE:
 		move.w	d7,d0
@@ -16259,6 +16325,7 @@ loc_C8BE:
 		lea	(Dynamic_object_RAM+object_size).w,a3	; load the first save slot object
 		move.w	#VRAM_Plane_A_Name_Table+$A20,d7
 		lea	(Saved_data).w,a0
+		lea	(Archipelago_Level_Unlocks).w,a4
 		moveq	#8-1,d3
 
 loc_C8E6:
@@ -16285,6 +16352,12 @@ loc_C912:
 		move.w	objoff_36(a3),d0
 		add.w	d0,d0
 		moveq	#0,d1
+
+		cmp.w	#14,d0
+		bmi.s	Not_Special_Stage
+		lea		Special_Stage_Text(pc),a1	
+
+Not_Special_Stage:
 		move.b	DataSelect_Zone_Nums(pc,d0.w),d1
 		bpl.s	loc_C932
 		move.w	#high_priority,d1
@@ -16311,6 +16384,7 @@ loc_C94C:
 		addi.w	#$1A,d7
 		lea	next_SaveSlot(a0),a0
 		lea	next_object(a3),a3
+		lea next_Archipelago_Level_Bitmask(a4),a4
 		dbf	d3,loc_C8E6
 		bra.s	loc_C97A
 ; ---------------------------------------------------------------------------
@@ -16332,13 +16406,30 @@ DataSelect_Zone_Nums:
 		dc.b    1,   2	; 12
 		dc.b    1,   3	; 13
 		dc.b    1,   4	; 14
+
+		;;  Special Stages
+		dc.b    1,   5	; 15
+		dc.b    1,   6	; 16
+		dc.b    1,   7	; 17
+		dc.b    1,   8	; 18
+		dc.b    1,   9	; 19
+		dc.b    2,   0	; 20
+		dc.b    2,   1	; 21
+		dc.b    2,   2	; 22
+		dc.b    2,   3	; 23
+		dc.b    2,   4	; 24
+		dc.b    2,   5	; 25
+		dc.b    2,   6	; 26
+		dc.b    2,   7	; 27
+		dc.b    2,   8	; 28
 ; ---------------------------------------------------------------------------
 
 loc_C97A:
 		lea	Map_DataSelect_Player_LivesContinues(pc),a2
 		lea	(Dynamic_object_RAM+object_size).w,a3
 		move.w	#VRAM_Plane_A_Name_Table+$1220,d7
-		lea	(Saved_data).w,a0
+		lea	(Saved_data).w,a0	; a0 is the pointer to the current save slot through the save select code
+		lea	(Archipelago_Level_Unlocks).w,a4 ; pointer to the corresponding Archipelago level bitmask
 		moveq	#8-1,d6
 
 loc_C98C:
@@ -16610,7 +16701,7 @@ ObjDat_SaveScreen:
 		dc.b    7						; Save Slot ID Number
 ; ---------------------------------------------------------------------------
 
-Obj_SaveScreen_Selector:
+Obj_SaveScreen_Selector:		; This is the actual start of handling the interactive parts of the save select
 		move.w	#$A8,d0
 		moveq	#0,d1
 		moveq	#0,d2
@@ -16646,7 +16737,7 @@ loc_D1E6:
 loc_D1FA:
 		tst.w	(Events_bg+$12).w
 		bne.s	loc_D212
-		btst	#button_B,(Ctrl_1_pressed).w
+		btst	#button_B,(Ctrl_1_pressed).w ; Handle going back to the start screen
 		beq.s	loc_D212
 		move.b	#4,(Game_mode).w
 		bra.w	loc_D2CE
@@ -16915,15 +17006,15 @@ loc_D4B6:
 ; ---------------------------------------------------------------------------
 
 loc_D4D0:
-		moveq	#$B,d6
-		cmpi.w	#3,$34(a0)
-		beq.s	loc_D4EE
-		moveq	#$C,d6
-		cmpi.w	#2,$34(a0)
-		beq.s	loc_D4EE
-		cmpi.b	#2,$3B(a0)
-		blo.s	loc_D4EE
-		moveq	#$D,d6
+		moveq	#28,d6
+		;; cmpi.w	#3,$34(a0)
+		;; beq.s	loc_D4EE
+		;; moveq	#$C,d6
+		;; cmpi.w	#2,$34(a0)
+		;; beq.s	loc_D4EE
+		;; cmpi.b	#2,$3B(a0)
+		;; blo.s	loc_D4EE
+		;; moveq	#$D,d6
 
 loc_D4EE:
 		moveq	#0,d2
@@ -16932,9 +17023,11 @@ loc_D4EE:
 		btst	#button_down,d0
 		beq.s	loc_D508
 		moveq	#signextendB(sfx_Switch),d2
-		subq.w	#1,d1
-		bpl.s	loc_D518
-		move.w	d6,d1
+		;; subq.w	#1,d1
+		move.w	#-1,d4
+		jsr		(SaveSelect_Next_Unlocked).l
+		;; bpl.s	loc_D518
+		;; move.w	d6,d1
 		bra.s	loc_D518
 ; ---------------------------------------------------------------------------
 
@@ -16942,10 +17035,12 @@ loc_D508:
 		btst	#button_up,d0
 		beq.s	loc_D518
 		moveq	#signextendB(sfx_Switch),d2
-		addq.w	#1,d1
-		cmp.w	d6,d1
-		bls.s	loc_D518
-		moveq	#0,d1
+		;; addq.w	#1,d1
+		move.w	#1,d4
+		jsr		(SaveSelect_Next_Unlocked).l
+		;; cmp.w	d6,d1
+		;; bls.s	loc_D518
+		;; moveq	#0,d1
 
 loc_D518:
 		move.w	d1,$36(a0)
@@ -17079,6 +17174,38 @@ Set_ChildSprites:
 
 loc_D6CA:
 		jmp	(Draw_Sprite).l
+
+; =============== S U B R O U T I N E =======================================
+
+	;; Parameters:
+	;; d1: contains the current level selected
+	;; d4: contains the direction in which to switch the level. 1 to move to the next level, and -1 to move to the previous
+	;; This subroutine also relies on Dataselect_entry to know which save slot is currently selected
+	;;
+	;; d1 is modified to have the value of the next level to select
+	;; This subroutine assumes that at least one level is unlocked
+	;; d5, d7, and a5 are used for intermediate value computation
+SaveSelect_Next_Unlocked:
+		add.w	d4,d1
+		cmp.w	#0,d1			; Check for wraparound from lowest to highest level
+		bpl.s	SaveSelect_Next_Unlocked_Check_Overflow
+		move.w	#27,d1
+		bra.s	SaveSelect_Next_Unlocked_Check_Unlocked
+SaveSelect_Next_Unlocked_Check_Overflow:
+		cmp.w	#28,d1
+		bmi.s	SaveSelect_Next_Unlocked_Check_Unlocked
+		move.w	#0,d1
+SaveSelect_Next_Unlocked_Check_Unlocked:
+		move.l	#0,d5
+		move.b	(Dataselect_entry).w,d5
+		sub.w	#1,d5			; First save slot is entry 1, so subtract zero to make a zero-based index
+		lsl.w	#2,d5			; Bit shift to determine how many bytes forward to read for the correct level unlock bitmask
+		lea		Archipelago_Level_Unlocks,a5
+		add		d5,a5
+		move.l	(a5),d5
+		btst.l	d1,d5
+		beq.s	SaveSelect_Next_Unlocked
+		rts
 
 ; =============== S U B R O U T I N E =======================================
 
@@ -17563,9 +17690,11 @@ BlankSave_Text:
 ;byte_DB31
 D_S_Zone_Text:
 		dc.b  "ZONE", $FF
+Special_Stage_Text:
+		dc.b "SPEC", $FF
 ;byte_DB36
 Clear_Text:
-		dc.b  "CLEAR", $FF
+		dc.b  "RANDO", $FF
 		even
 		restore
 ; =============== S U B R O U T I N E =======================================
@@ -18356,6 +18485,20 @@ loc_E988:
 		bls.s	loc_E986
 		move.l	a2,(Ring_end_addr_ROM).w
 		rts
+
+
+; =============== S U B R O U T I N E =======================================
+
+
+Archipelago_Check_Save:
+	tst.b	(Archipelago_Save_Flag).w
+	beq.s	Archipelago_Check_Save_Ret
+	jsr	Write_Archipelago(pc)
+	clr.w	(Archipelago_Save_Flag).w
+
+Archipelago_Check_Save_Ret
+	rts
+
 
 ; =============== S U B R O U T I N E =======================================
 

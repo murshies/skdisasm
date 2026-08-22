@@ -255,6 +255,7 @@ PSG_input =			$C00011
 SRAM_competition_size =	$15*4	; $54 bytes
 SRAM_S3game_size = $D*4	; $34 bytes
 SRAM_SKgame_size = $15*4	; $54 bytes
+SRAM_Archipelago_Lvl_size = 4*4	; $10 bytes
 
 	phase $200001
 SRAM_start	=		*
@@ -270,6 +271,10 @@ SRAM_S3game_backup	ds.w SRAM_S3game_size	; $34 bytes
 SRAM_SKgame	ds.w SRAM_SKgame_size	; $54 bytes
 	ds.w 2	; unused
 SRAM_SKgame_backup	ds.w SRAM_SKgame_size	; $54 bytes
+	ds.w 2	; unused
+SRAM_Archipelago_Lvl_Bitmasks ds.w SRAM_Archipelago_Lvl_size ; $10 bytes
+	ds.w 2	; unused
+SRAM_Archipelago_Lvl_Bitmasks_backup ds.w SRAM_Archipelago_Lvl_size ; $10 bytes
 	ds.w $15	; unused
 SRAM_end	=		*
 	dephase
@@ -337,7 +342,9 @@ Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
 			ds.w 1				; unused
 Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and special stage results.
-			ds.b $44			; unused
+			ds.b $32			; unused
+Archipelago_Save_Flag	ds.w 1	; Used by Archipelago to signal to the game that save data should be written
+Archipelago_Level_Unlocks		ds.b $10 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order, plus two more word for the RAM integrity value and checksum
 Saved_data :=			*		; S3 uses a different address
 				ds.b $54		; saved data from 1 player mode
 Ring_status_table		ds.b $400		; 1 word per ring
@@ -387,11 +394,11 @@ Apparent_zone_and_act =		*
 Apparent_zone			ds.b 1			; always equal to actual zone
 Apparent_act			ds.b 1			; for example, after AIZ gets burnt, this indicates act 1 even though it's actually act 2
 Palette_fade_timer		ds.w 1			; the palette gets faded in until this timer expires
-Competition_time_record		ds.l 1		; player 1's recorded time for the current run, to be displayed in menus and the result screen 
+Competition_time_record		ds.l 1		; player 1's recorded time for the current run, to be displayed in menus and the result screen
 Competition_time_record_minute =			Competition_time_record+1
 Competition_time_record_second =			Competition_time_record+2
 Competition_time_record_frame =			Competition_time_record+3
-Competition_time_record_P2	ds.l 1		; player 2's recorded time for the current run, to be displayed in menus and the result screen 
+Competition_time_record_P2	ds.l 1		; player 2's recorded time for the current run, to be displayed in menus and the result screen
 Competition_time_record_minute_P2 =		Competition_time_record_P2+1
 Competition_time_record_second_P2 =		Competition_time_record_P2+2
 Competition_time_record_frame_P2 =		Competition_time_record_P2+3
