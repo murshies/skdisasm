@@ -12113,7 +12113,7 @@ sub_972E:
 		tst.b	(Special_stage_fade_timer).w
 		bne.s	locret_97A8
 		move.b	#1,(Special_stage_fade_timer).w
-		move.b	#$48,(Game_mode).w
+		jmp		(WarpToSaveSelect).l
 		tst.b	(Blue_spheres_stage_flag).w
 		beq.s	loc_978E
 		move.b	#$2C,(Game_mode).w
@@ -12668,7 +12668,7 @@ loc_9CCE:
 loc_9CE6:
 		addq.b	#1,(Special_stage_clear_routine).w
 		move.b	#1,(Special_stage_fade_timer).w
-		move.b	#$48,(Game_mode).w
+		jmp		(WarpToSaveSelect).l
 		tst.b	(Blue_spheres_stage_flag).w
 		beq.s	loc_9D02
 		move.b	#$30,(Game_mode).w
@@ -16101,6 +16101,7 @@ SaveScreen:
 		clr.w	(Level_frame_counter).w
 		clr.w	(Events_bg+$10).w
 		clr.w	(Events_bg+$12).w
+		move.b	#0,(SK_special_stage_flag).w
 		lea	(MapEni_S3MenuBG).l,a0
 		lea	(RAM_start).l,a1
 		move.w	#make_art_tile(ArtTile_S3MenuBG,0,0),d0
@@ -16350,14 +16351,18 @@ loc_C912:
 		subq.w	#2,d0
 		jsr	sub_D9F4(pc)
 		move.w	objoff_36(a3),d0
-		add.w	d0,d0
-		moveq	#0,d1
 
 		cmp.w	#14,d0
 		bmi.s	Not_Special_Stage
-		lea		Special_Stage_Text(pc),a1	
+		lea		Special_Stage_Text(pc),a1
+		move.w	d7,d0
+		subq.w	#2,d0
+		jsr	sub_D9F4(pc)
+		move.w	objoff_36(a3),d0
 
 Not_Special_Stage:
+		add.w	d0,d0
+		moveq	#0,d1
 		move.b	DataSelect_Zone_Nums(pc,d0.w),d1
 		bpl.s	loc_C932
 		move.w	#high_priority,d1
@@ -16408,20 +16413,20 @@ DataSelect_Zone_Nums:
 		dc.b    1,   4	; 14
 
 		;;  Special Stages
-		dc.b    1,   5	; 15
-		dc.b    1,   6	; 16
-		dc.b    1,   7	; 17
-		dc.b    1,   8	; 18
-		dc.b    1,   9	; 19
-		dc.b    2,   0	; 20
-		dc.b    2,   1	; 21
-		dc.b    2,   2	; 22
-		dc.b    2,   3	; 23
-		dc.b    2,   4	; 24
-		dc.b    2,   5	; 25
-		dc.b    2,   6	; 26
-		dc.b    2,   7	; 27
-		dc.b    2,   8	; 28
+		dc.b  $FF,   1	; 01
+		dc.b  $FF,   2	; 02
+		dc.b  $FF,   3	; 03
+		dc.b  $FF,   4	; 04
+		dc.b  $FF,   5	; 05
+		dc.b  $FF,   6	; 06
+		dc.b  $FF,   7	; 07
+		dc.b  $FF,   8	; 08
+		dc.b  $FF,   9	; 09
+		dc.b    1,   0	; 10
+		dc.b    1,   1	; 11
+		dc.b    1,   2	; 12
+		dc.b    1,   3	; 13
+		dc.b    1,   4	; 14
 ; ---------------------------------------------------------------------------
 
 loc_C97A:
@@ -17007,14 +17012,6 @@ loc_D4B6:
 
 loc_D4D0:
 		moveq	#28,d6
-		;; cmpi.w	#3,$34(a0)
-		;; beq.s	loc_D4EE
-		;; moveq	#$C,d6
-		;; cmpi.w	#2,$34(a0)
-		;; beq.s	loc_D4EE
-		;; cmpi.b	#2,$3B(a0)
-		;; blo.s	loc_D4EE
-		;; moveq	#$D,d6
 
 loc_D4EE:
 		moveq	#0,d2
@@ -17023,11 +17020,8 @@ loc_D4EE:
 		btst	#button_down,d0
 		beq.s	loc_D508
 		moveq	#signextendB(sfx_Switch),d2
-		;; subq.w	#1,d1
 		move.w	#-1,d4
 		jsr		(SaveSelect_Next_Unlocked).l
-		;; bpl.s	loc_D518
-		;; move.w	d6,d1
 		bra.s	loc_D518
 ; ---------------------------------------------------------------------------
 
@@ -17035,12 +17029,8 @@ loc_D508:
 		btst	#button_up,d0
 		beq.s	loc_D518
 		moveq	#signextendB(sfx_Switch),d2
-		;; addq.w	#1,d1
 		move.w	#1,d4
 		jsr		(SaveSelect_Next_Unlocked).l
-		;; cmp.w	d6,d1
-		;; bls.s	loc_D518
-		;; moveq	#0,d1
 
 loc_D518:
 		move.w	d1,$36(a0)
@@ -17111,7 +17101,31 @@ loc_D5DE:
 		move.b	9(a1),(Continue_count).w
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	Write_SaveGame(pc)
+		move.w	$36(a0),d1		; Load the current level selection back into d1
+		cmp.w	#14,d1
+		bmi.s	Select_Level_Non_Special_Stage
+		move.b	#$34,(Game_mode).w
+		move.b	#0,(SK_special_stage_flag).w
+		cmp.w	#21,d1
+		bmi.s	Select_Special_Stage_S3
+		subi.w	#7,d1			; Otherwise, a Sonic & Knuckles special stage is selected
+		move.b	#1,(SK_special_stage_flag).w
+		move.w	#$700,(Current_zone_and_act).w
+		clr.w	(Emerald_counts).w
+		move.b	#2,(Collected_emeralds_array).w
+		move.b	#2,(Collected_emeralds_array+1).w
+		move.b	#2,(Collected_emeralds_array+2).w
+		move.b	#2,(Collected_emeralds_array+3).w
+		move.b	#2,(Collected_emeralds_array+4).w
+		move.b	#2,(Collected_emeralds_array+5).w
+		move.b	#2,(Collected_emeralds_array+6).w
+Select_Special_Stage_S3:
+		subi.w	#14,d1
+		move.b	d1,(Current_special_stage).w
+		bra.s	Select_Level_Start
+Select_Level_Non_Special_Stage:
 		move.b	#$C,(Game_mode).w
+Select_Level_Start:
 		jmp	(Draw_Sprite).l
 ; ---------------------------------------------------------------------------
 
