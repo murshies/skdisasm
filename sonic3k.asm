@@ -41179,9 +41179,34 @@ Map_Monitor:
 ;; register is also used to load the zone and act information, in order to push
 ;; it to the buffer, so callers should not rely on the register value being the
 ;; same after calling this subroutine. This routine handles advancing the slot
-;; pointer for the next invocation.
+;; pointer for the next invocation. a0 is also used during this routine.
 Archipelago_Check_Location:
-
+		movea.w	(Archipelago_Location_Buffer+2).w,a0 ; Load the current slot pointer into a0
+		; Write the object id into the slot. Since word writes must be aligned
+		; on an even byte, and these slots are 3 bytes long, each byte must be
+		; written individually.
+		move.b	d0,1(a0)		; Low byte
+		lsr.w	#8,d0
+		move.b	d0,2(a0)		; High byte
+		; Current_zone_and_act is saved as a word, but in order to make the
+		; slot more space efficient and allow more slots, each piece needs to
+		; be read and compacted into a single byte. The highest two bits are
+		; used for the act, while the lower six bits are used for the zone.
+		moveq	#0,d0
+		move.b	(Current_act).w,d0
+		andi.b	#3,d0
+		lsl.b	#6,d0
+		or.b	(Current_zone).w,d0
+		move.b	d0,(a0)
+		; Advance the slot pointer to the next slot, wrapping around if
+		; necessary.
+		addq.w	#3,a0
+		cmpa.w	#(Archipelago_Location_Buffer+$31),a0 ; Do we need to wrap around?
+		bne.s	Archipelago_Check_Location_Save_Slot_Pointer ; No, so skip to saving the new pointer to memory
+		movea.w	#(Archipelago_Location_Buffer+4),a0			 ; Wrap around
+Archipelago_Check_Location_Save_Slot_Pointer:
+		move.w	a0,(Archipelago_Location_Buffer+2).w
+		ret
 
 ; =============== S U B R O U T I N E =======================================
 
