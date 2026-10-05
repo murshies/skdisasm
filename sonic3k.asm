@@ -41168,6 +41168,21 @@ Ani_Monitor:
 Map_Monitor:
 		include "General/Sprites/Monitors/Map - Monitor.asm"
 
+
+; =============== S U B R O U T I N E =======================================
+
+;; This is the subroutine for signalling to the Archipelago client that a
+;; location has been checked. It pushes the location information to the
+;; location buffer; see the documentation on Archipelago_Location_Buffer in
+;; sonic3k.contants.asm for more information. There is one parameter to this
+;; subroutine: d0, which contains the object id for the checked location. This
+;; register is also used to load the zone and act information, in order to push
+;; it to the buffer, so callers should not rely on the register value being the
+;; same after calling this subroutine. This routine handles advancing the slot
+;; pointer for the next invocation.
+Archipelago_Check_Location:
+
+
 ; =============== S U B R O U T I N E =======================================
 
 

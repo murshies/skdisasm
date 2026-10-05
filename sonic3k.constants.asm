@@ -342,7 +342,31 @@ Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
 			ds.w 1				; unused
 Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and special stage results.
-			ds.b $32			; unused
+			ds.b 1			; unused
+; Archipelago location check buffer.
+; To avoid losing checks when a player does them, as well as to make it much
+; more efficient for the client to read them, the game code will write to this
+; region every time a location is checked. It is an array of 15 objects, with
+; each object having the following layout:
+; byte 1: First four bits for zone, second four bits for the act
+; bytes 2-3: The location's id. For locations that are associated with an
+;     object in the level, for example breaking a monitor, a boss, or a big
+;     ring, this will be its index in the object respawn table. For other
+;     things, like completing a level, ids will be set starting with the
+;     highest bit set, and a made up id depending on the check. It is up to the
+;     Archipelago client to interpret the id correctly.
+; There are also two pieces of information at the beginning of this memory space:
+; A 2 byte RAM integrity value, to signal to the Archipelago client that the
+;     RAM for the object buffer has been initialized correctly. This is to
+;     avoid any errant item checks.
+; A 2 byte pointer to the next slot to use in the object array. After reaching
+;     the end of the array, the pointer will wrap around to the beginning, and
+;     whichever item was in that slot previously will be overwritten. It will
+;     be up to the Archipelago client to determine which checks are new, and
+;     which ones it has already seen.
+; All of these things together make the total size of this memory space:
+; 2 bytes RAM integrity + 2 bytes slot pointer + (3 bytes per object * 15 objects) = 49 bytes
+Archipelago_Location_Buffer	ds.b $31
 Archipelago_Save_Flag	ds.w 1	; Used by Archipelago to signal to the game that save data should be written
 Archipelago_Level_Unlocks		ds.b $10 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order, plus two more word for the RAM integrity value and checksum
 Saved_data :=			*		; S3 uses a different address
