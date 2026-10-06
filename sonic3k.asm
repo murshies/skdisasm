@@ -182,6 +182,17 @@ Init_InputPSG:
 		move.w	d0,(a2)
 		movem.l	(a6),d0-a6	; clear all registers
 		move	#$2700,sr	; set the sr
+		; Set up variables for clearing Archipelago location slot data
+		moveq	#45,d3
+		lea		(Archipelago_Location_Buffer+4).w,a6
+
+Init_Archipelago:
+		; Zero out the slot data
+		move.b	d0,(a6)+
+		dbf		d3,Init_Archipelago
+		; Set the location buffer header fields
+		move.w	#$4150,(Archipelago_Location_Buffer).w ; RAM integrity value
+		move.w	#(Archipelago_Location_Buffer+4),(Archipelago_Location_Buffer+2).w ; Set slot pointer to the first slot
 
 Init_SkipPowerOn:
 		bra.s	Test_LockOn
