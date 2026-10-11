@@ -182,17 +182,6 @@ Init_InputPSG:
 		move.w	d0,(a2)
 		movem.l	(a6),d0-a6	; clear all registers
 		move	#$2700,sr	; set the sr
-		; Set up variables for clearing Archipelago location slot data
-		moveq	#45,d3
-		lea		(Archipelago_Location_Buffer+4).w,a6
-
-Init_Archipelago:
-		; Zero out the slot data
-		move.b	d0,(a6)+
-		dbf		d3,Init_Archipelago
-		; Set the location buffer header fields
-		move.w	#$4150,(Archipelago_Location_Buffer).w ; RAM integrity value
-		move.w	#(Archipelago_Location_Buffer+4),(Archipelago_Location_Buffer+2).w ; Set slot pointer to the first slot
 
 Init_SkipPowerOn:
 		bra.s	Test_LockOn
@@ -297,6 +286,10 @@ Test_LockOn:
 -
 		move.l	d7,(a6)+
 		dbf	d6,-
+		; The RAM clear above also zeroes the Archipelago location slots, so
+		; only the location buffer header needs to be set up
+		move.w	#Archipelago_Location_Integrity_Value,(Archipelago_Location_Integrity).w
+		move.w	#Archipelago_Location_Slots&$FFFF,(Archipelago_Location_Next_Slot).w
 
 	if Sonic3_Complete
 		moveq	#0,d1
@@ -12200,6 +12193,8 @@ loc_9838:
 		bne.s	loc_984C
 		moveq	#signextendB(sfx_Perfect),d0
 		jsr	(Play_Music).l
+		move.w	#Archipelago_Loc_SS_Perfect,d0
+		jsr	(Archipelago_Check_SS_Location).l
 
 loc_984C:
 		addi.w	#1,(Special_stage_ring_count).w
@@ -12679,6 +12674,8 @@ loc_9CCE:
 loc_9CE6:
 		addq.b	#1,(Special_stage_clear_routine).w
 		move.b	#1,(Special_stage_fade_timer).w
+		move.w	#Archipelago_Loc_SS_Emerald,d0
+		jsr	(Archipelago_Check_SS_Location).l
 		jmp		(WarpToSaveSelect).l
 		tst.b	(Blue_spheres_stage_flag).w
 		beq.s	loc_9D02
@@ -40848,6 +40845,8 @@ Obj_MonitorSpawnIcon:
 		beq.s	.notremembered			; If it's zero, it isn't remembered
 		movea.w	d0,a2				; Load address into a2
 		bset	#0,(a2)				; Mark monitor as destroyed
+		subi.w	#Object_respawn_table&$FFFF,d0	; The respawn table index is the location id
+		bsr.w	Archipelago_Check_Location
 
 	.notremembered:
 		move.b	#$A,anim(a0)			; Display 'broken' animation
@@ -41186,38 +41185,50 @@ Map_Monitor:
 ;; location has been checked. It pushes the location information to the
 ;; location buffer; see the documentation on Archipelago_Location_Buffer in
 ;; sonic3k.contants.asm for more information. There is one parameter to this
-;; subroutine: d0, which contains the object id for the checked location. This
-;; register is also used to load the zone and act information, in order to push
-;; it to the buffer, so callers should not rely on the register value being the
-;; same after calling this subroutine. This routine handles advancing the slot
-;; pointer for the next invocation. a0 is also used during this routine.
+;; subroutine: d0.w, which contains the id for the checked location. This
+;; routine handles advancing the slot pointer for the next invocation.
+;; Clobbers d0 and a3, the same registers HUD_AddToScore clobbers, so it is
+;; safe to call anywhere a boss awards points.
+;;
+;; Archipelago_Check_SS_Location is an alternate entry point for special stage
+;; locations: d0.w holds one of the Archipelago_Loc_SS_* base ids, and the
+;; current special stage number (0-6 for Sonic 3, 7-13 for Sonic & Knuckles)
+;; is added to it.
+Archipelago_Check_SS_Location:
+		add.b	(Current_special_stage).w,d0
+		tst.b	(SK_special_stage_flag).w
+		beq.s	Archipelago_Check_Location
+		addq.b	#7,d0
+
 Archipelago_Check_Location:
-		movea.w	(Archipelago_Location_Buffer+2).w,a0 ; Load the current slot pointer into a0
-		; Write the object id into the slot. Since word writes must be aligned
-		; on an even byte, and these slots are 3 bytes long, each byte must be
-		; written individually.
-		move.b	d0,1(a0)		; Low byte
+		movea.w	(Archipelago_Location_Next_Slot).w,a3	; Load the current slot pointer into a3
+		; Write the id into the slot, big endian. Since word writes must be
+		; aligned on an even byte, and these slots are 3 bytes long, each byte
+		; must be written individually.
+		move.b	d0,2(a3)		; Low byte
 		lsr.w	#8,d0
-		move.b	d0,2(a0)		; High byte
-		; Current_zone_and_act is saved as a word, but in order to make the
+		move.b	d0,1(a3)		; High byte
+		; Apparent_zone_and_act is saved as a word, but in order to make the
 		; slot more space efficient and allow more slots, each piece needs to
 		; be read and compacted into a single byte. The highest two bits are
 		; used for the act, while the lower six bits are used for the zone.
-		moveq	#0,d0
-		move.b	(Current_act).w,d0
-		andi.b	#3,d0
-		lsl.b	#6,d0
-		or.b	(Current_zone).w,d0
-		move.b	d0,(a0)
+		; The apparent act is used because during seamless act transitions
+		; (e.g. Angel Island), Current_act changes before the act 1 results.
+		move.b	(Apparent_act).w,d0
+		ror.b	#2,d0			; Move the act into the highest two bits
+		or.b	(Apparent_zone).w,d0
+		move.b	d0,(a3)
 		; Advance the slot pointer to the next slot, wrapping around if
-		; necessary.
-		addq.w	#3,a0
-		cmpa.w	#(Archipelago_Location_Buffer+$31),a0 ; Do we need to wrap around?
-		bne.s	Archipelago_Check_Location_Save_Slot_Pointer ; No, so skip to saving the new pointer to memory
-		movea.w	#(Archipelago_Location_Buffer+4),a0			 ; Wrap around
-Archipelago_Check_Location_Save_Slot_Pointer:
-		move.w	a0,(Archipelago_Location_Buffer+2).w
-		ret
+		; necessary. The pointer is written last, so the client never sees a
+		; partially filled slot.
+		addq.w	#3,a3
+		cmpa.w	#Archipelago_Location_Slots_End&$FFFF,a3	; Do we need to wrap around?
+		bne.s	.saveslotpointer				; No, so skip to saving the new pointer to memory
+		lea	(Archipelago_Location_Slots).w,a3		; Wrap around
+
+.saveslotpointer:
+		move.w	a3,(Archipelago_Location_Next_Slot).w
+		rts
 
 ; =============== S U B R O U T I N E =======================================
 
@@ -62735,6 +62746,8 @@ LevelResults_Index:
 ; ---------------------------------------------------------------------------
 
 Obj_LevelResultsInit:
+		move.w	#Archipelago_Loc_Act_Complete,d0
+		jsr	(Archipelago_Check_Location).l
 		moveq	#signextendB(cmd_FadeOut),d0
 		jsr	(Play_Music).l				; Fade music
 		lea	(ArtKosM_ResultsGeneral).l,a1
@@ -91742,7 +91755,7 @@ loc_45B94:
 		jsr	(Play_Music).l
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
-		jmp	(WarpToSaveSelect).l ; Knuckles Hidden Palace complete
+		jmp	(WarpToSaveSelect_ActComplete).l	; Knuckles Hidden Palace complete
 ; ---------------------------------------------------------------------------
 
 loc_45BC8:
@@ -91935,7 +91948,7 @@ loc_45D8A:
 		jsr	(Play_Music).l
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
-		jmp	(WarpToSaveSelect).l ; Sonic/Tails Hidden Palace complete
+		jmp	(WarpToSaveSelect_ActComplete).l	; Sonic/Tails Hidden Palace complete
 ; ---------------------------------------------------------------------------
 
 locret_45DAC:
@@ -108356,7 +108369,7 @@ loc_523CA:
 		bhs.s	locret_523EA
 		moveq	#signextendB(cmd_FadeOut),d0
 		jsr	(Play_Music).l
-		jmp	(WarpToSaveSelect).l ; Carnival Night complete
+		jmp	(WarpToSaveSelect_ActComplete).l	; Carnival Night complete
 ; ---------------------------------------------------------------------------
 
 locret_523EA:
@@ -117503,7 +117516,9 @@ loc_581D2:
 		bne.s	locret_581F0
 		moveq	#signextendB(cmd_FadeOut),d0
 		jsr	(Play_Music).l
-		jmp	(WarpToSaveSelect).l ; Sonic/Tails Sky Santuary complete
+		move.w	#Archipelago_Loc_Boss,d0
+		jsr	(Archipelago_Check_Location).l
+		jmp	(WarpToSaveSelect_ActComplete).l	; Sonic/Tails Sky Santuary complete
 ; ---------------------------------------------------------------------------
 
 locret_581F0:
@@ -138523,7 +138538,8 @@ loc_695AE:
 		addi.w	#$1E6,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		bhi.w	locret_69366
-		jsr	(WarpToSaveSelect).l ; Angel Island complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Angel Island complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_695CE:
@@ -141834,7 +141850,8 @@ loc_6B8C8:
 		bne.s	loc_6B8C2
 		subq.w	#1,$2E(a0)
 		bpl.s	loc_6B8B2
-		jsr	(WarpToSaveSelect).l ; Hydrocity complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Hydrocity complete
+		jmp	(Delete_Current_Sprite).l
 
 ; =============== S U B R O U T I N E =======================================
 
@@ -144079,7 +144096,8 @@ loc_6D128:
 		blo.w	locret_6BF96
 
 loc_6D13C:
-		jsr	(WarpToSaveSelect).l ; Marble Garden complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Marble Garden complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 word_6D14C:
 		dc.w     $A
@@ -146282,7 +146300,8 @@ loc_6E80C:
 		addi.w	#$20,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		blo.w	locret_6E4C4
-		jsr	(WarpToSaveSelect).l ; Sonic/Tails Carnival Night complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Sonic/Tails Carnival Night complete
+		jmp	(Go_Delete_Sprite_2).l
 ; ---------------------------------------------------------------------------
 
 loc_6E82C:
@@ -149142,7 +149161,8 @@ loc_7092A:
 ; ---------------------------------------------------------------------------
 
 loc_70938:
-		jsr	(WarpToSaveSelect).l ; Flying Battery complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Flying Battery complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_70948:
@@ -152415,7 +152435,8 @@ loc_72CDA:
 		addi.w	#$120,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		bhi.w	locret_72B02
-		jsr	(WarpToSaveSelect).l	; Sonic/Tails Launch Base complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Sonic/Tails Launch Base complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_72CFA:
@@ -154225,6 +154246,8 @@ loc_7403A:
 		clr.b	(Update_HUD_timer).w
 		moveq	#100,d0
 		jsr	(HUD_AddToScore).l
+		move.w	#Archipelago_Loc_Boss,d0
+		jsr	(Archipelago_Check_Location).l
 		bclr	#7,render_flags(a0)
 		move.w	#$7F,$2E(a0)
 		bset	#4,$38(a0)
@@ -155031,7 +155054,8 @@ loc_7498E:
 		addi.w	#$200,d0
 		cmp.w	(Player_1+y_pos).w,d0
 		bhi.w	locret_74374
-		jsr	(WarpToSaveSelect).l ; Knuckles Launch Base complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Knuckles Launch Base complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_749AE:
@@ -157435,7 +157459,8 @@ loc_76456:
 ; ---------------------------------------------------------------------------
 
 loc_7645E:
-		jsr	(WarpToSaveSelect).l ; Mushroom Hill complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Mushroom Hill complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_7646E:
@@ -158817,6 +158842,8 @@ loc_77358:
 ; ---------------------------------------------------------------------------
 
 loc_77364:
+		move.w	#Archipelago_Loc_Boss,d0
+		jsr	(Archipelago_Check_Location).l
 		move.l	#loc_76E0A,(a0)
 		clr.w	x_vel(a0)
 		move.w	#$40,y_vel(a0)
@@ -159263,7 +159290,8 @@ loc_77A10:
 ; ---------------------------------------------------------------------------
 
 loc_77A2E:
-		jsr	(WarpToSaveSelect).l ; Sandopolis complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Sandopolis complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_77A3E:
@@ -159278,7 +159306,8 @@ loc_77A3E:
 ; ---------------------------------------------------------------------------
 
 loc_77A5E:
-		jsr	(WarpToSaveSelect).l ; Sandopolis complete
+		jsr	(WarpToSaveSelect_ActComplete).l	; Sandopolis complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_77A6E:
@@ -163107,7 +163136,7 @@ loc_7A5EC:
 		move.b	#4,subtype(a1)
 
 loc_7A60E:
-		jmp	(BossDefeated).l
+		jmp	(BossDefeated_NoLocationCheck).l
 ; End of function sub_7A5A0
 
 
@@ -163806,7 +163835,7 @@ loc_7AD3A:
 		move.b	#4,subtype(a1)
 
 loc_7AD64:
-		jmp	(BossDefeated).l
+		jmp	(BossDefeated_NoLocationCheck).l
 ; End of function sub_7ACF2
 
 
@@ -164877,6 +164906,8 @@ loc_7B8E6:
 ; ---------------------------------------------------------------------------
 
 loc_7B916:
+		move.w	#Archipelago_Loc_Boss,d0	; Knuckles' Mecha Sonic, before he becomes Super Mecha Sonic
+		jsr	(Archipelago_Check_Location).l
 		move.l	#loc_7BC32,(a0)
 		clr.b	(Update_HUD_timer).w
 		move.w	#$BF,$2E(a0)
@@ -171691,13 +171722,13 @@ loc_803D6:
 		bhs.s	loc_8040C
 		cmpi.b	#7,(Chaos_emerald_count).w
 		bne.s	loc_8040C
-		jmp	(WarpToSaveSelect).l ; Death Egg complete - to Doomsday
+		jmp	(WarpToSaveSelect_ActComplete).l	; Death Egg complete - to Doomsday
 ; ---------------------------------------------------------------------------
 
 loc_8040C:
 		cmpi.w	#3,(Player_mode).w
 		beq.s	loc_8041E
-		jmp	(WarpToSaveSelect).l	; Death Egg complete - to credits
+		jmp	(WarpToSaveSelect_ActComplete).l	; Death Egg complete - to credits
 ; ---------------------------------------------------------------------------
 
 loc_8041E:
@@ -173981,7 +174012,10 @@ loc_81CA4:
 		bpl.w	locret_82ABA
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
-		jsr	(WarpToSaveSelect).l	; Doomsday complete
+		move.w	#Archipelago_Loc_Boss,d0
+		jsr	(Archipelago_Check_Location).l
+		jsr	(WarpToSaveSelect_ActComplete).l	; Doomsday complete
+		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
 loc_81CC6:
@@ -180814,6 +180848,12 @@ StartNewLevel:
 
 ; =============== S U B R O U T I N E =======================================
 
+; Used when a zone is completed, to signal the act completion to Archipelago
+; before warping to the save select screen
+WarpToSaveSelect_ActComplete:
+		move.w	#Archipelago_Loc_Act_Complete,d0
+		jsr	(Archipelago_Check_Location).l
+
 WarpToSaveSelect:
 		clr.b	(Current_zone_and_act).w
 		clr.b	(Apparent_zone_and_act).w
@@ -181002,6 +181042,12 @@ BossDefeated_StopTimer:
 
 
 BossDefeated:
+		move.w	#Archipelago_Loc_Boss,d0
+		jsr	(Archipelago_Check_Location).l
+
+; Used by bosses that don't count as an Archipelago location, such as the
+; Sky Sanctuary rematches that come before Mecha Sonic
+BossDefeated_NoLocationCheck:
 		move.w	#$3F,$2E(a0)
 		moveq	#100,d0
 		jsr	(HUD_AddToScore).l
@@ -190099,7 +190145,7 @@ loc_8B626:
 		jsr	CreateChild1_Normal(pc)
 		btst	#7,subtype(a0)
 		beq.s	loc_8B652
-		jsr	WarpToSaveSelect
+		jsr	(WarpToSaveSelect_ActComplete).l ; Ice Cap complete
 
 loc_8B652:
 		jmp	(Go_Delete_Sprite).l
@@ -192097,7 +192143,7 @@ loc_8C8C6:
 loc_8C8E6:
 		addq.w	#1,$3A(a0)
 		jsr	(Animate_RawMultiDelay).l
-		jmp	Child_DrawTouch_Sprite(pc)
+		jmp	(Child_DrawTouch_Sprite).l
 ; ---------------------------------------------------------------------------
 ObjDat_Corkey:
 		dc.l Map_Corkey

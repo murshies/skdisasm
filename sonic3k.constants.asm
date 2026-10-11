@@ -257,6 +257,13 @@ SRAM_S3game_size = $D*4	; $34 bytes
 SRAM_SKgame_size = $15*4	; $54 bytes
 SRAM_Archipelago_Lvl_size = 4*4	; $10 bytes
 
+; Archipelago location buffer values. See Archipelago_Location_Buffer.
+Archipelago_Location_Integrity_Value = $4150	; 'AP'
+Archipelago_Loc_Act_Complete = $8000		; act completed
+Archipelago_Loc_Boss = $8001			; boss or miniboss defeated
+Archipelago_Loc_SS_Emerald = $8100		; + special stage number (0-13), special stage completed
+Archipelago_Loc_SS_Perfect = $8200		; + special stage number (0-13), all rings collected in a special stage
+
 	phase $200001
 SRAM_start	=		*
 	ds.w 8	; unused
@@ -342,19 +349,19 @@ Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
 			ds.w 1				; unused
 Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and special stage results.
-			ds.b 1			; unused
 ; Archipelago location check buffer.
 ; To avoid losing checks when a player does them, as well as to make it much
 ; more efficient for the client to read them, the game code will write to this
 ; region every time a location is checked. It is an array of 15 objects, with
 ; each object having the following layout:
-; byte 1: First four bits for zone, second four bits for the act
-; bytes 2-3: The location's id. For locations that are associated with an
-;     object in the level, for example breaking a monitor, a boss, or a big
-;     ring, this will be its index in the object respawn table. For other
-;     things, like completing a level, ids will be set starting with the
-;     highest bit set, and a made up id depending on the check. It is up to the
-;     Archipelago client to interpret the id correctly.
+; byte 1: The zone and act, taken from Apparent_zone_and_act. The act is in
+;     the highest two bits, and the zone is in the lower six bits. This byte
+;     has no meaning for special stage locations.
+; bytes 2-3: The location's id, stored big endian. For monitors, this is the
+;     monitor's index in the object respawn table. For other things, like
+;     completing a level or defeating a boss, the id will have the highest bit
+;     set, and will be one of the Archipelago_Loc_* values below. It is up to
+;     the Archipelago client to interpret the id correctly.
 ; There are also two pieces of information at the beginning of this memory space:
 ; A 2 byte RAM integrity value, to signal to the Archipelago client that the
 ;     RAM for the object buffer has been initialized correctly. This is to
@@ -366,7 +373,14 @@ Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and
 ;     which ones it has already seen.
 ; All of these things together make the total size of this memory space:
 ; 2 bytes RAM integrity + 2 bytes slot pointer + (3 bytes per object * 15 objects) = 49 bytes
-Archipelago_Location_Buffer	ds.b $31
+; The buffer must start on an even address, since the first two fields are
+; accessed as words.
+Archipelago_Location_Buffer :=	*
+Archipelago_Location_Integrity	ds.w 1		; set to Archipelago_Location_Integrity_Value once initialized
+Archipelago_Location_Next_Slot	ds.w 1		; pointer to the slot the next check will be written to
+Archipelago_Location_Slots	ds.b 3*15
+Archipelago_Location_Slots_End :=	*
+			ds.b 1			; unused
 Archipelago_Save_Flag	ds.w 1	; Used by Archipelago to signal to the game that save data should be written
 Archipelago_Level_Unlocks		ds.b $10 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order, plus two more word for the RAM integrity value and checksum
 Saved_data :=			*		; S3 uses a different address
