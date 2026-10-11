@@ -260,7 +260,9 @@ SRAM_Archipelago_Lvl_size = 4*4	; $10 bytes
 ; Archipelago location buffer values. See Archipelago_Location_Buffer.
 Archipelago_Location_Integrity_Value = $4150	; 'AP'
 Archipelago_Loc_Act_Complete = $8000		; act completed
-Archipelago_Loc_Boss = $8001			; boss or miniboss defeated
+Archipelago_Loc_Boss = $8001			; boss or miniboss defeated (for Sonic's Sky Sanctuary, the third and final Mecha Sonic fight)
+Archipelago_Loc_SSZ_Mecha_Sonic_1 = $8002	; Sonic's Sky Sanctuary, first Mecha Sonic fight (Green Hill boss)
+Archipelago_Loc_SSZ_Mecha_Sonic_2 = $8003	; Sonic's Sky Sanctuary, second Mecha Sonic fight (Metropolis boss)
 Archipelago_Loc_SS_Emerald = $8100		; + special stage number (0-13), special stage completed
 Archipelago_Loc_SS_Perfect = $8200		; + special stage number (0-13), all rings collected in a special stage
 

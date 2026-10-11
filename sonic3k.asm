@@ -163136,7 +163136,8 @@ loc_7A5EC:
 		move.b	#4,subtype(a1)
 
 loc_7A60E:
-		jmp	(BossDefeated_NoLocationCheck).l
+		move.w	#Archipelago_Loc_SSZ_Mecha_Sonic_1,d0
+		jmp	(BossDefeated_Location).l
 ; End of function sub_7A5A0
 
 
@@ -163835,7 +163836,8 @@ loc_7AD3A:
 		move.b	#4,subtype(a1)
 
 loc_7AD64:
-		jmp	(BossDefeated_NoLocationCheck).l
+		move.w	#Archipelago_Loc_SSZ_Mecha_Sonic_2,d0
+		jmp	(BossDefeated_Location).l
 ; End of function sub_7ACF2
 
 
@@ -181043,11 +181045,11 @@ BossDefeated_StopTimer:
 
 BossDefeated:
 		move.w	#Archipelago_Loc_Boss,d0
-		jsr	(Archipelago_Check_Location).l
 
-; Used by bosses that don't count as an Archipelago location, such as the
-; Sky Sanctuary rematches that come before Mecha Sonic
-BossDefeated_NoLocationCheck:
+; Used by bosses that need a location id other than Archipelago_Loc_Boss,
+; such as the earlier Mecha Sonic fights in Sky Sanctuary. d0.w = location id
+BossDefeated_Location:
+		jsr	(Archipelago_Check_Location).l
 		move.w	#$3F,$2E(a0)
 		moveq	#100,d0
 		jsr	(HUD_AddToScore).l
