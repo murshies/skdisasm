@@ -128535,6 +128535,12 @@ SSEntry_Range:
 ; ---------------------------------------------------------------------------
 
 loc_61794:
+		move.w	respawn_addr(a0),d0
+		beq.s	+				; If it's zero, it isn't from the object layout
+		subi.w	#Object_respawn_table&$FFFF,d0	; The respawn table index is the location id
+		jsr	(Archipelago_Check_Location).l
+
++
 		moveq	#signextendB(sfx_BigRing),d0
 		jsr	(Play_SFX).l
 		move.b	subtype(a0),d0

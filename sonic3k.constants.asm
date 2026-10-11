@@ -359,8 +359,8 @@ Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and
 ; byte 1: The zone and act, taken from Apparent_zone_and_act. The act is in
 ;     the highest two bits, and the zone is in the lower six bits. This byte
 ;     has no meaning for special stage locations.
-; bytes 2-3: The location's id, stored big endian. For monitors, this is the
-;     monitor's index in the object respawn table. For other things, like
+; bytes 2-3: The location's id, stored big endian. For monitors and big rings,
+;     this is the object's index in the object respawn table. For other things, like
 ;     completing a level or defeating a boss, the id will have the highest bit
 ;     set, and will be one of the Archipelago_Loc_* values below. It is up to
 ;     the Archipelago client to interpret the id correctly.
