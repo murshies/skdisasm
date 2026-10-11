@@ -41194,6 +41194,11 @@ Map_Monitor:
 ;; locations: d0.w holds one of the Archipelago_Loc_SS_* base ids, and the
 ;; current special stage number (0-6 for Sonic 3, 7-13 for Sonic & Knuckles)
 ;; is added to it.
+;;
+;; Archipelago_Check_Location_ZoneAct is an alternate entry point for locations
+;; that belong to a different act than the one currently being played: the
+;; high word of d0 holds the zone and act (in the same format as
+;; Current_zone_and_act), and the low word holds the id.
 Archipelago_Check_SS_Location:
 		add.b	(Current_special_stage).w,d0
 		tst.b	(SK_special_stage_flag).w
@@ -41201,6 +41206,13 @@ Archipelago_Check_SS_Location:
 		addq.b	#7,d0
 
 Archipelago_Check_Location:
+		; The apparent act is used because during seamless act transitions
+		; (e.g. Angel Island), Current_act changes before the act 1 results.
+		swap	d0
+		move.w	(Apparent_zone_and_act).w,d0
+		swap	d0
+
+Archipelago_Check_Location_ZoneAct:
 		movea.w	(Archipelago_Location_Next_Slot).w,a3	; Load the current slot pointer into a3
 		; Write the id into the slot, big endian. Since word writes must be
 		; aligned on an even byte, and these slots are 3 bytes long, each byte
@@ -41208,16 +41220,15 @@ Archipelago_Check_Location:
 		move.b	d0,2(a3)		; Low byte
 		lsr.w	#8,d0
 		move.b	d0,1(a3)		; High byte
-		; Apparent_zone_and_act is saved as a word, but in order to make the
+		; The zone and act are saved as a word, but in order to make the
 		; slot more space efficient and allow more slots, each piece needs to
-		; be read and compacted into a single byte. The highest two bits are
-		; used for the act, while the lower six bits are used for the zone.
-		; The apparent act is used because during seamless act transitions
-		; (e.g. Angel Island), Current_act changes before the act 1 results.
-		move.b	(Apparent_act).w,d0
+		; be compacted into a single byte. The highest two bits are used for
+		; the act, while the lower six bits are used for the zone.
+		swap	d0
 		ror.b	#2,d0			; Move the act into the highest two bits
-		or.b	(Apparent_zone).w,d0
 		move.b	d0,(a3)
+		lsr.w	#8,d0
+		or.b	d0,(a3)			; Add in the zone
 		; Advance the slot pointer to the next slot, wrapping around if
 		; necessary. The pointer is written last, so the client never sees a
 		; partially filled slot.
@@ -118023,6 +118034,11 @@ loc_58AF6:
 		dbf	d0,loc_58AF6
 		move.b	#$17,(a1)
 		move.b	#$19,(a5)
+		; Knuckles' Sky Sanctuary is complete once the ending starts
+		move.l	a3,-(sp)
+		move.w	#Archipelago_Loc_Act_Complete,d0
+		jsr	(Archipelago_Check_Location).l
+		movea.l	(sp)+,a3
 		st	(Ending_running_flag).w
 		addq.w	#4,(Events_routine_fg).w
 		jmp	(Refresh_PlaneFullDirect).l
@@ -181619,6 +181635,17 @@ loc_86418:
 		move.w	subtype(a0),d0
 		lsr.w	#1,d0
 		rol.b	#1,d0
+		cmpi.w	#$1601,d0
+		bne.s	.nothpz
+		; Going to Hidden Palace counts as completing Lava Reef act 2. For
+		; Sonic and Tails this happens from the Lava Reef boss act, which the
+		; game treats as a separate act, so the zone and act are given
+		; explicitly.
+		move.l	#($901<<16)|Archipelago_Loc_Act_Complete,d0
+		jsr	(Archipelago_Check_Location_ZoneAct).l
+		move.w	#$1601,d0
+
+.nothpz:
 		jmp	StartNewLevel(pc)
 ; ---------------------------------------------------------------------------
 word_86426:
@@ -191161,7 +191188,7 @@ SnaleBlaster_Index:
 
 loc_8BFD4:
 		lea	ObjDat_SnaleBlaster(pc),a1
-		jsr	SetUp_ObjAttributes(pc)
+		jsr	(SetUp_ObjAttributes).l
 		move.w	#$20,$2E(a0)
 		move.l	#loc_8C00E,$34(a0)
 		lea	ChildObjDat_8C28A(pc),a2
