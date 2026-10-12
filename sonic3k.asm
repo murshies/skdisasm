@@ -41213,14 +41213,19 @@ Archipelago_Process_Items:
 .playing:
 		tst.b	(Archipelago_Poison_Timer).w
 		beq.s	.checkitem
-		moveq	#Archipelago_Poison_Interval-1,d0
-		and.w	(Level_frame_counter).w,d0
+		moveq	#0,d0
+		move.w	(Level_frame_counter).w,d0
+		divu.w	#Archipelago_Poison_Interval,d0
+		swap	d0			; Remainder
+		tst.w	d0
 		bne.s	.checkitem
 		subq.b	#1,(Archipelago_Poison_Timer).w
 		tst.w	(Ring_count).w
 		beq.s	.checkitem
 		subq.w	#1,(Ring_count).w
 		ori.b	#$80,(Update_HUD_ring_count).w	; Redraw the ring counter from scratch
+		moveq	#signextendB(sfx_RingLoss),d0
+		jsr	(Play_SFX).l
 
 .checkitem:
 		move.l	(Archipelago_Item_Request_ID).w,d0

@@ -276,8 +276,8 @@ Archipelago_Item_Invincibility = 5
 Archipelago_Item_Power_Sneakers = 6
 Archipelago_Item_Robotnik_Trap = 7		; same as breaking a Robotnik monitor
 Archipelago_Item_Poison_Trap = 8		; drains rings over time
-Archipelago_Poison_Rings = 40			; rings drained by the Poison Trap
-Archipelago_Poison_Interval = 16		; frames between each drained ring, must be a power of 2
+Archipelago_Poison_Rings = 20			; rings drained by the Poison Trap
+Archipelago_Poison_Interval = 30		; frames between each drained ring
 
 	phase $200001
 SRAM_start	=		*
