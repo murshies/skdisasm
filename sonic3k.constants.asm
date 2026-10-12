@@ -266,6 +266,19 @@ Archipelago_Loc_SSZ_Mecha_Sonic_2 = $8003	; Sonic's Sky Sanctuary, second Mecha 
 Archipelago_Loc_SS_Emerald = $8100		; + special stage number (0-13), special stage completed
 Archipelago_Loc_SS_Perfect = $8200		; + special stage number (0-13), all rings collected in a special stage
 
+; Archipelago item mailbox values. See Archipelago_Item_Integrity.
+Archipelago_Item_Integrity_Value = $4149	; 'AI'
+Archipelago_Item_Super_Ring = 1			; 10 rings
+Archipelago_Item_Lightning_Shield = 2
+Archipelago_Item_Flame_Shield = 3
+Archipelago_Item_Water_Shield = 4
+Archipelago_Item_Invincibility = 5
+Archipelago_Item_Power_Sneakers = 6
+Archipelago_Item_Robotnik_Trap = 7		; same as breaking a Robotnik monitor
+Archipelago_Item_Poison_Trap = 8		; drains rings over time
+Archipelago_Poison_Rings = 40			; rings drained by the Poison Trap
+Archipelago_Poison_Interval = 16		; frames between each drained ring, must be a power of 2
+
 	phase $200001
 SRAM_start	=		*
 	ds.w 8	; unused
@@ -346,7 +359,21 @@ Stat_table =			*			; used by Tails' AI in a Sonic and Tails game
 Pos_table_P2			ds.b $100		; used by Player 2 in competition mode
 Pos_table 			ds.b $100		;
 Competition_saved_data		ds.b $54		; saved data from Competition Mode
-			ds.b $C				; unused
+; Archipelago item mailbox.
+; The client gives the game one item at a time. To send an item, the client
+; writes the item type to Archipelago_Item_Request_Type and a new id (the
+; current 32-bit unix timestamp) to Archipelago_Item_Request_ID. Whenever the
+; requested id differs from Archipelago_Item_Last_Processed_ID and the level is
+; actively being played, the game applies the item and then copies the
+; requested id to Archipelago_Item_Last_Processed_ID, which tells the client
+; that it can send the next item. Item types are the Archipelago_Item_* values;
+; unknown types are acknowledged without doing anything.
+; Both ids are zero after the game boots, so the client can tell that the game
+; was reset and that an unacknowledged item needs to be sent again.
+Archipelago_Item_Integrity	ds.w 1		; set to Archipelago_Item_Integrity_Value once initialized
+Archipelago_Item_Last_Processed_ID	ds.l 1	; written by the game
+Archipelago_Item_Request_ID	ds.l 1		; written by the client
+Archipelago_Item_Request_Type	ds.w 1		; written by the client
 Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
 			ds.w 1				; unused
@@ -382,7 +409,7 @@ Archipelago_Location_Integrity	ds.w 1		; set to Archipelago_Location_Integrity_V
 Archipelago_Location_Next_Slot	ds.w 1		; pointer to the slot the next check will be written to
 Archipelago_Location_Slots	ds.b 3*15
 Archipelago_Location_Slots_End :=	*
-			ds.b 1			; unused
+Archipelago_Poison_Timer	ds.b 1		; number of rings the Poison Trap still has to drain
 Archipelago_Save_Flag	ds.w 1	; Used by Archipelago to signal to the game that save data should be written
 Archipelago_Level_Unlocks		ds.b $10 ; bitmask for Archipelago level unlocks. Each long is for Sonic, Tails, and Knuckles, in that order, plus two more word for the RAM integrity value and checksum
 Saved_data :=			*		; S3 uses a different address

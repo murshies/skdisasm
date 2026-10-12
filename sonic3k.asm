@@ -290,6 +290,7 @@ Test_LockOn:
 		; only the location buffer header needs to be set up
 		move.w	#Archipelago_Location_Integrity_Value,(Archipelago_Location_Integrity).w
 		move.w	#Archipelago_Location_Slots&$FFFF,(Archipelago_Location_Next_Slot).w
+		move.w	#Archipelago_Item_Integrity_Value,(Archipelago_Item_Integrity).w
 
 	if Sonic3_Complete
 		moveq	#0,d1
@@ -7517,6 +7518,7 @@ Level:
 
 loc_5FC4:
 		clr.w	(Ending_running_flag).w
+		clr.b	(Archipelago_Poison_Timer).w	; A Poison Trap doesn't carry over into a new level or a restart
 		clr.w	(Kos_decomp_queue_count).w
 		clearRAM	Kos_decomp_stored_registers,$6C	; Clear the KosM bytes
 		bsr.w	Clear_Nem_Queue				; Clear PLCs
@@ -7896,6 +7898,7 @@ LevelLoop:
 		addq.w	#1,(Level_frame_counter).w
 		bsr.w	Demo_PlayRecord
 		jsr (Archipelago_Check_Save).l
+		jsr	(Archipelago_Process_Items).l
 		jsr	(Animate_Palette).l
 		jsr	(SpecialEvents).l
 		jsr	(Load_Sprites).l
@@ -41177,6 +41180,90 @@ Ani_Monitor:
 		include "General/Sprites/Monitors/Anim - Monitor.asm"
 Map_Monitor:
 		include "General/Sprites/Monitors/Map - Monitor.asm"
+
+
+; =============== S U B R O U T I N E =======================================
+
+;; Called once per frame from LevelLoop. Gives the player the item requested
+;; by the Archipelago client, if there is one, and drains rings for an active
+;; Poison Trap. See Archipelago_Item_Integrity in sonic3k.constants.asm for
+;; the protocol. Nothing happens unless the level is actively being played.
+;; Most items spawn a monitor icon above the player, which then applies its
+;; effect exactly like a broken monitor would.
+Archipelago_Process_Items:
+		cmpi.b	#$C,(Game_mode).w	; Not loading the level or playing a demo?
+		bne.s	.notplaying
+		tst.w	(Game_paused).w
+		bne.s	.notplaying
+		tst.b	(Update_HUD_timer).w	; The timer is stopped after a boss is defeated or an act is completed
+		beq.s	.notplaying
+		tst.b	(Ctrl_1_locked).w	; Locked during cutscenes
+		bne.s	.notplaying
+		tst.w	(Debug_placement_mode).w
+		bne.s	.notplaying
+		cmpi.b	#2,(Player_1+routine).w	; Is the player in control, not hurt or dead?
+		bne.s	.notplaying
+		tst.b	(Player_1+object_control).w	; Is the player under the control of an object?
+		beq.s	.playing
+
+.notplaying:
+		rts
+; ---------------------------------------------------------------------------
+
+.playing:
+		tst.b	(Archipelago_Poison_Timer).w
+		beq.s	.checkitem
+		moveq	#Archipelago_Poison_Interval-1,d0
+		and.w	(Level_frame_counter).w,d0
+		bne.s	.checkitem
+		subq.b	#1,(Archipelago_Poison_Timer).w
+		tst.w	(Ring_count).w
+		beq.s	.checkitem
+		subq.w	#1,(Ring_count).w
+		ori.b	#$80,(Update_HUD_ring_count).w	; Redraw the ring counter from scratch
+
+.checkitem:
+		move.l	(Archipelago_Item_Request_ID).w,d0
+		cmp.l	(Archipelago_Item_Last_Processed_ID).w,d0
+		beq.s	.return			; Nothing new from the client
+		move.w	(Archipelago_Item_Request_Type).w,d1
+		cmpi.w	#Archipelago_Item_Poison_Trap,d1
+		beq.s	.poison
+		subq.w	#1,d1
+		cmpi.w	#Archipelago_Item_Robotnik_Trap-1,d1
+		bhi.s	.acknowledge		; Unknown item type, so skip it
+		jsr	(AllocateObject).l
+		bne.s	.return			; No free object slot, so try again next frame
+		move.l	#Obj_MonitorContents,(a1)
+		move.w	(Player_1+x_pos).w,x_pos(a1)
+		move.w	(Player_1+y_pos).w,y_pos(a1)
+		move.b	Archipelago_Item_Monitor_Types(pc,d1.w),anim(a1)
+		move.w	#Player_1,parent(a1)	; The monitor effect is applied to the parent
+		bra.s	.acknowledge
+; ---------------------------------------------------------------------------
+
+.poison:
+		move.b	#Archipelago_Poison_Rings,(Archipelago_Poison_Timer).w
+
+.acknowledge:
+		move.l	(Archipelago_Item_Request_ID).w,(Archipelago_Item_Last_Processed_ID).w
+
+.return:
+		rts
+; End of function Archipelago_Process_Items
+
+; ---------------------------------------------------------------------------
+; Monitor icon (the anim of Obj_MonitorContents) for each Archipelago item
+; type, starting at Archipelago_Item_Super_Ring
+Archipelago_Item_Monitor_Types:
+		dc.b 3	; Super Ring
+		dc.b 6	; Lightning Shield
+		dc.b 5	; Flame Shield
+		dc.b 7	; Water Shield
+		dc.b 8	; Invincibility
+		dc.b 4	; Power Sneakers
+		dc.b 2	; Robotnik Trap
+		even
 
 
 ; =============== S U B R O U T I N E =======================================
