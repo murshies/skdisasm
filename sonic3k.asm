@@ -17507,6 +17507,11 @@ locret_D968:
 
 
 Load_Icon_Art:
+		cmpi.w	#14,d1
+		blo.s	.notspecialstage
+		moveq	#10,d1			; There are no special stage images, so use the Hidden Palace one
+
+.notspecialstage:
 		cmp.b	$3A(a0),d1
 		bne.s	loc_D9A2
 		tst.b	$3B(a0)
