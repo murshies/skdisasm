@@ -17202,14 +17202,14 @@ loc_D6CA:
 
 ; =============== S U B R O U T I N E =======================================
 
-	;; Parameters:
-	;; d1: contains the current level selected
-	;; d4: contains the direction in which to switch the level. 1 to move to the next level, and -1 to move to the previous
-	;; This subroutine also relies on Dataselect_entry to know which save slot is currently selected
-	;;
-	;; d1 is modified to have the value of the next level to select
-	;; This subroutine assumes that at least one level is unlocked
-	;; d5, d7, and a5 are used for intermediate value computation
+;; Parameters:
+;; d1: contains the current level selected
+;; d4: contains the direction in which to switch the level. 1 to move to the next level, and -1 to move to the previous
+;; This subroutine also relies on Dataselect_entry to know which save slot is currently selected
+;;
+;; d1 is modified to have the value of the next level to select
+;; This subroutine assumes that at least one level is unlocked
+;; d5, d7, and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
 		add.w	d4,d1
 		cmp.w	#0,d1			; Check for wraparound from lowest to highest level
@@ -17228,8 +17228,14 @@ SaveSelect_Next_Unlocked_Check_Unlocked:
 		lea		Archipelago_Level_Unlocks,a5
 		add		d5,a5
 		move.l	(a5),d5
+		;; It's possible that the current character has no zones/special stages
+		;; unlocked at all. Now that the level unlock bitmask is read nto d5,
+		;; check for that possibility here and bail out if that's the case.
+		cmp.l	#0,d5
+		beq.s	SaveSelect_Next_Unlocked_Done
 		btst.l	d1,d5
 		beq.s	SaveSelect_Next_Unlocked
+SaveSelect_Next_Unlocked_Done:
 		rts
 
 ; =============== S U B R O U T I N E =======================================
