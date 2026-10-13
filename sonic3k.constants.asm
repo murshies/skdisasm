@@ -276,6 +276,7 @@ Archipelago_Item_Invincibility = 5
 Archipelago_Item_Power_Sneakers = 6
 Archipelago_Item_Robotnik_Trap = 7		; same as breaking a Robotnik monitor
 Archipelago_Item_Poison_Trap = 8		; drains rings over time
+Archipelago_Item_Death_Link = 9			; kills the player, regardless of rings, shields, or invincibility
 Archipelago_Poison_Rings = 20			; rings drained by the Poison Trap
 Archipelago_Poison_Interval = 30		; frames between each drained ring
 

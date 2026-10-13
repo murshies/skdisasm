@@ -41239,6 +41239,8 @@ Archipelago_Process_Items:
 		move.w	(Archipelago_Item_Request_Type).w,d1
 		cmpi.w	#Archipelago_Item_Poison_Trap,d1
 		beq.s	.poison
+		cmpi.w	#Archipelago_Item_Death_Link,d1
+		beq.s	.deathlink
 		subq.w	#1,d1
 		cmpi.w	#Archipelago_Item_Robotnik_Trap-1,d1
 		bhi.s	.acknowledge		; Unknown item type, so skip it
@@ -41249,6 +41251,13 @@ Archipelago_Process_Items:
 		move.w	(Player_1+y_pos).w,y_pos(a1)
 		move.b	Archipelago_Item_Monitor_Types(pc,d1.w),anim(a1)
 		move.w	#Player_1,parent(a1)	; The monitor effect is applied to the parent
+		bra.s	.acknowledge
+; ---------------------------------------------------------------------------
+
+.deathlink:
+		lea	(Player_1).w,a0		; Kill the player the same way running out of time does
+		movea.l	a0,a2
+		jsr	(Kill_Character).l
 		bra.s	.acknowledge
 ; ---------------------------------------------------------------------------
 
