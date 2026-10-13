@@ -17202,15 +17202,22 @@ loc_D6CA:
 
 ; =============== S U B R O U T I N E =======================================
 
-	;; Parameters:
-	;; d1: contains the current level selected
-	;; d4: contains the direction in which to switch the level. 1 to move to the next level, and -1 to move to the previous
-	;; This subroutine also relies on Dataselect_entry to know which save slot is currently selected
-	;;
-	;; d1 is modified to have the value of the next level to select
-	;; This subroutine assumes that at least one level is unlocked
-	;; d5, d7, and a5 are used for intermediate value computation
+;; Parameters:
+;; d1: contains the current level selected
+;; d4: contains the direction in which to switch the level. 1 to move to the next level, and -1 to move to the previous
+;; This subroutine also relies on Dataselect_entry to know which save slot is currently selected
+;;
+;; d1 is modified to have the value of the next level to select
+;; This subroutine assumes that at least one level is unlocked
+;; d5, d7, and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
+		;; It's possible that the current character has no zones
+		;; unlocked. Check for that first before attempting to iterate through
+		;; the bitmask.
+		bsr.s	SaveSelect_Next_Unlocked_Load_Bitmask
+		cmp.l	#0,d5
+		beq.s	SaveSelect_Next_Unlocked_Done
+SaveSelect_Next_Unlocked_Loop_Start:
 		add.w	d4,d1
 		cmp.w	#0,d1			; Check for wraparound from lowest to highest level
 		bpl.s	SaveSelect_Next_Unlocked_Check_Overflow
@@ -17221,6 +17228,14 @@ SaveSelect_Next_Unlocked_Check_Overflow:
 		bmi.s	SaveSelect_Next_Unlocked_Check_Unlocked
 		move.w	#0,d1
 SaveSelect_Next_Unlocked_Check_Unlocked:
+		bsr.s	SaveSelect_Next_Unlocked_Load_Bitmask
+		btst.l	d1,d5
+		beq.s	SaveSelect_Next_Unlocked_Loop_Start
+SaveSelect_Next_Unlocked_Done:
+		rts
+
+;; Subroutine used by the above subroutine to load the current level bitmask.
+SaveSelect_Next_Unlocked_Load_Bitmask:
 		move.l	#0,d5
 		move.b	(Dataselect_entry).w,d5
 		sub.w	#1,d5			; First save slot is entry 1, so subtract zero to make a zero-based index
@@ -17228,8 +17243,6 @@ SaveSelect_Next_Unlocked_Check_Unlocked:
 		lea		Archipelago_Level_Unlocks,a5
 		add		d5,a5
 		move.l	(a5),d5
-		btst.l	d1,d5
-		beq.s	SaveSelect_Next_Unlocked
 		rts
 
 ; =============== S U B R O U T I N E =======================================
