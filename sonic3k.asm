@@ -17232,9 +17232,15 @@ SaveSelect_Next_Unlocked_Check_Unlocked:
 		;; unlocked at all. Now that the level unlock bitmask is read nto d5,
 		;; check for that possibility here and bail out if that's the case.
 		cmp.l	#0,d5
-		beq.s	SaveSelect_Next_Unlocked_Done
+		beq.s	SaveSelect_Next_Unlocked_None_Unlocked
 		btst.l	d1,d5
 		beq.s	SaveSelect_Next_Unlocked
+		bra.s	SaveSelect_Next_Unlocked_Done
+SaveSelect_Next_Unlocked_None_Unlocked:
+		;; This routine always increments/decrements the level counter by 1 at
+		;; the start, even if no zones/special stages are unlocked. In this
+		;; case, reset d1 to its original value and return.
+		moveq	#0,d1
 SaveSelect_Next_Unlocked_Done:
 		rts
 
