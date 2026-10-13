@@ -17211,6 +17211,13 @@ loc_D6CA:
 ;; This subroutine assumes that at least one level is unlocked
 ;; d5, d7, and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
+		;; It's possible that the current character has no zones
+		;; unlocked. Check for that first before attempting to iterate through
+		;; the bitmask.
+		bsr.s	SaveSelect_Next_Unlocked_Load_Bitmask
+		cmp.l	#0,d5
+		beq.s	SaveSelect_Next_Unlocked_Done
+SaveSelect_Next_Unlocked_Loop_Start:
 		add.w	d4,d1
 		cmp.w	#0,d1			; Check for wraparound from lowest to highest level
 		bpl.s	SaveSelect_Next_Unlocked_Check_Overflow
@@ -17221,6 +17228,14 @@ SaveSelect_Next_Unlocked_Check_Overflow:
 		bmi.s	SaveSelect_Next_Unlocked_Check_Unlocked
 		move.w	#0,d1
 SaveSelect_Next_Unlocked_Check_Unlocked:
+		bsr.s	SaveSelect_Next_Unlocked_Load_Bitmask
+		btst.l	d1,d5
+		beq.s	SaveSelect_Next_Unlocked_Loop_Start
+SaveSelect_Next_Unlocked_Done:
+		rts
+
+;; Subroutine used by the above subroutine to load the current level bitmask.
+SaveSelect_Next_Unlocked_Load_Bitmask:
 		move.l	#0,d5
 		move.b	(Dataselect_entry).w,d5
 		sub.w	#1,d5			; First save slot is entry 1, so subtract zero to make a zero-based index
@@ -17228,20 +17243,6 @@ SaveSelect_Next_Unlocked_Check_Unlocked:
 		lea		Archipelago_Level_Unlocks,a5
 		add		d5,a5
 		move.l	(a5),d5
-		;; It's possible that the current character has no zones/special stages
-		;; unlocked at all. Now that the level unlock bitmask is read nto d5,
-		;; check for that possibility here and bail out if that's the case.
-		cmp.l	#0,d5
-		beq.s	SaveSelect_Next_Unlocked_None_Unlocked
-		btst.l	d1,d5
-		beq.s	SaveSelect_Next_Unlocked
-		bra.s	SaveSelect_Next_Unlocked_Done
-SaveSelect_Next_Unlocked_None_Unlocked:
-		;; This routine always increments/decrements the level counter by 1 at
-		;; the start, even if no zones/special stages are unlocked. In this
-		;; case, reset d1 to its original value and return.
-		sub.w	d4,d1
-SaveSelect_Next_Unlocked_Done:
 		rts
 
 ; =============== S U B R O U T I N E =======================================
