@@ -16029,7 +16029,7 @@ Write_Archipelago_Bitmasks:
 		lea	SRAM_Archipelago_Lvl_Bitmasks,a0
 		lea	SRAM_Archipelago_Lvl_Bitmasks_backup,a1
 		lea	Archipelago_Level_Unlocks,a2
-		move.w	#$14,d0
+		moveq	#bytesToWcnt(SRAM_Archipelago_Lvl_size),d0
 		jmp	Write_SRAM(pc)
 
 
@@ -16040,7 +16040,7 @@ Write_Archipelago_Bitmasks:
 ; 2. The regular game save data
 Write_Archipelago:
 		jsr	Write_Archipelago_Bitmasks(pc)
-		jsr	Write_SaveGame(pc)
+		jmp	Write_SaveGame(pc)
 
 
 ; =============== S U B R O U T I N E =======================================
