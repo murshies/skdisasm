@@ -16233,8 +16233,10 @@ SaveScreen_MainLoop:
 		move.b	#$1E,(V_int_routine).w
 		jsr	(Wait_VSync).l
 		addq.w	#1,(Level_frame_counter).w
+		; This must run before Process_Sprites so that the save slot objects
+		; reload their data in the same frame that the save data changes
+		jsr (Archipelago_Check_Save_SaveScreen).l
 		jsr	(Process_Sprites).l
-		jsr (Archipelago_Check_Save).l
 		move.w	(Camera_X_pos_copy).w,d0
 		neg.w	d0
 		move.w	d0,(H_scroll_buffer+2).w
@@ -16921,11 +16923,13 @@ loc_D39A:
 
 Obj_SaveScreen_Save_Slot:
 		jsr	(AllocateObjectAfterCurrent).l
-		bne.s	loc_D3B0
+		bne.s	Obj_SaveScreen_Save_Slot_Load
 		move.l	#Obj_SaveScreen_Emeralds,(a1)
 		move.w	a0,parent2(a1)
 
-loc_D3B0:
+; Loads the save slot's data into the object. Archipelago jumps back here when
+; the save data changes while on the save screen.
+Obj_SaveScreen_Save_Slot_Load:
 		moveq	#0,d0
 		move.b	$2E(a0),d0
 		mulu.w	#$A,d0
@@ -18540,6 +18544,27 @@ Archipelago_Check_Save:
 	clr.w	(Archipelago_Save_Flag).w
 
 Archipelago_Check_Save_Ret
+	rts
+
+
+; =============== S U B R O U T I N E =======================================
+
+; Save screen version of Archipelago_Check_Save. The save slot objects copy
+; parts of the save data when they're created, so after a save they're sent
+; back to their loading routine to pick up the new data.
+Archipelago_Check_Save_SaveScreen:
+	tst.b	(Archipelago_Save_Flag).w
+	beq.s	Archipelago_Check_Save_SaveScreen_Ret
+	bsr.s	Archipelago_Check_Save
+	lea	(Dynamic_object_RAM+object_size).w,a1	; first save slot object
+	moveq	#8-1,d0
+
+Archipelago_Check_Save_SaveScreen_Loop:
+	move.l	#Obj_SaveScreen_Save_Slot_Load,(a1)
+	lea	next_object(a1),a1
+	dbf	d0,Archipelago_Check_Save_SaveScreen_Loop
+
+Archipelago_Check_Save_SaveScreen_Ret
 	rts
 
 
