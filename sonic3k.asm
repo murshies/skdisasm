@@ -15680,9 +15680,9 @@ SaveData_GeneralDefault:
 		dc.w  $8000,     0, $8000,     0, $8000,     0,     1,  $200
 		dc.w  $4C44
 SaveData_GameDefault:
-		dc.w  $0100,     0,     $10,     0,  $300 ; Sonic
-		dc.w  $0100,     0,     $20,     0,  $300 ; Tails
-		dc.w  $0100,     0,     $30,     0,  $300 ; Knuckles
+		dc.w  $0100, $1000,       0,     0,  $300 ; Sonic
+		dc.w  $0100, $2000,       0,     0,  $300 ; Tails
+		dc.w  $0100, $3000,       0,     0,  $300 ; Knuckles
 		dc.w  $8000,     0,       0,     0,  $300
 		dc.w  $8000,     0,       0,     0,  $300
 		dc.w  $8000,     0,       0,     0,  $300
