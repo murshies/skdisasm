@@ -181794,10 +181794,13 @@ loc_86418:
 		; Going to Hidden Palace counts as completing Lava Reef act 2. For
 		; Sonic and Tails this happens from the Lava Reef boss act, which the
 		; game treats as a separate act, so the zone and act are given
-		; explicitly.
+		; explicitly. Hidden Palace has to be unlocked separately, so warp
+		; to the save select screen instead of starting it. Knuckles also
+		; reaches Hidden Palace through this object, at the end of Lava Reef
+		; act 2.
 		move.l	#($901<<16)|Archipelago_Loc_Act_Complete,d0
 		jsr	(Archipelago_Check_Location_ZoneAct).l
-		move.w	#$1601,d0
+		jmp	(WarpToSaveSelect).l
 
 .nothpz:
 		jmp	StartNewLevel(pc)
