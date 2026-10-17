@@ -152207,7 +152207,9 @@ loc_7289A:
 ; ---------------------------------------------------------------------------
 
 loc_728C2:
-		jmp	(BossDefeated).l
+		; Knuckles fights two of these at once. Obj_LBZMinibossBoxKnux sends
+		; the location once both of them are defeated.
+		jmp	(BossDefeated_NoLocation).l
 ; ---------------------------------------------------------------------------
 
 loc_728C8:
@@ -181220,6 +181222,9 @@ BossDefeated:
 ; such as the earlier Mecha Sonic fights in Sky Sanctuary. d0.w = location id
 BossDefeated_Location:
 		jsr	(Archipelago_Check_Location).l
+
+; Used by bosses that send their location somewhere else
+BossDefeated_NoLocation:
 		move.w	#$3F,$2E(a0)
 		moveq	#100,d0
 		jsr	(HUD_AddToScore).l
@@ -192991,6 +192996,8 @@ loc_8CFC8:
 
 loc_8CFFE:
 		clr.b	(Update_HUD_timer).w
+		move.w	#Archipelago_Loc_Boss,d0	; Both of Knuckles' Launch Base act 1 minibosses defeated
+		jsr	(Archipelago_Check_Location).l
 		lea	(Child6_IncLevY).l,a2
 		jsr	(CreateChild6_Simple).l
 		lea	ChildObjDat_8D27A(pc),a2
