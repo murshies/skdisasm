@@ -17121,6 +17121,9 @@ loc_D5DE:
 		bmi.s	Select_Level_Non_Special_Stage
 		move.b	#$34,(Game_mode).w
 		move.b	#0,(SK_special_stage_flag).w
+		; sub_DA4E only maps the 14 normal levels, so it gives an invalid
+		; zone for special stages. Use Angel Island for the Sonic 3 ones.
+		move.w	#0,(Current_zone_and_act).w
 		cmp.w	#21,d1
 		bmi.s	Select_Special_Stage_S3
 		subi.w	#7,d1			; Otherwise, a Sonic & Knuckles special stage is selected
@@ -17135,6 +17138,7 @@ loc_D5DE:
 		move.b	#2,(Collected_emeralds_array+5).w
 		move.b	#2,(Collected_emeralds_array+6).w
 Select_Special_Stage_S3:
+		move.w	(Current_zone_and_act).w,(Apparent_zone_and_act).w
 		subi.w	#14,d1
 		move.b	d1,(Current_special_stage).w
 		bra.s	Select_Level_Start
