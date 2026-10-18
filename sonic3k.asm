@@ -17121,6 +17121,9 @@ loc_D5DE:
 		bmi.s	Select_Level_Non_Special_Stage
 		move.b	#$34,(Game_mode).w
 		move.b	#0,(SK_special_stage_flag).w
+		; sub_DA4E only maps the 14 normal levels, so it gives an invalid
+		; zone for special stages. Use Angel Island for the Sonic 3 ones.
+		move.w	#0,(Current_zone_and_act).w
 		cmp.w	#21,d1
 		bmi.s	Select_Special_Stage_S3
 		subi.w	#7,d1			; Otherwise, a Sonic & Knuckles special stage is selected
@@ -17135,6 +17138,7 @@ loc_D5DE:
 		move.b	#2,(Collected_emeralds_array+5).w
 		move.b	#2,(Collected_emeralds_array+6).w
 Select_Special_Stage_S3:
+		move.w	(Current_zone_and_act).w,(Apparent_zone_and_act).w
 		subi.w	#14,d1
 		move.b	d1,(Current_special_stage).w
 		bra.s	Select_Level_Start
@@ -152203,7 +152207,9 @@ loc_7289A:
 ; ---------------------------------------------------------------------------
 
 loc_728C2:
-		jmp	(BossDefeated).l
+		; Knuckles fights two of these at once. Obj_LBZMinibossBoxKnux sends
+		; the location once both of them are defeated.
+		jmp	(BossDefeated_NoLocation).l
 ; ---------------------------------------------------------------------------
 
 loc_728C8:
@@ -181216,6 +181222,9 @@ BossDefeated:
 ; such as the earlier Mecha Sonic fights in Sky Sanctuary. d0.w = location id
 BossDefeated_Location:
 		jsr	(Archipelago_Check_Location).l
+
+; Used by bosses that send their location somewhere else
+BossDefeated_NoLocation:
 		move.w	#$3F,$2E(a0)
 		moveq	#100,d0
 		jsr	(HUD_AddToScore).l
@@ -181790,10 +181799,13 @@ loc_86418:
 		; Going to Hidden Palace counts as completing Lava Reef act 2. For
 		; Sonic and Tails this happens from the Lava Reef boss act, which the
 		; game treats as a separate act, so the zone and act are given
-		; explicitly.
+		; explicitly. Hidden Palace has to be unlocked separately, so warp
+		; to the save select screen instead of starting it. Knuckles also
+		; reaches Hidden Palace through this object, at the end of Lava Reef
+		; act 2.
 		move.l	#($901<<16)|Archipelago_Loc_Act_Complete,d0
 		jsr	(Archipelago_Check_Location_ZoneAct).l
-		move.w	#$1601,d0
+		jmp	(WarpToSaveSelect).l
 
 .nothpz:
 		jmp	StartNewLevel(pc)
@@ -192984,6 +192996,8 @@ loc_8CFC8:
 
 loc_8CFFE:
 		clr.b	(Update_HUD_timer).w
+		move.w	#Archipelago_Loc_Boss,d0	; Both of Knuckles' Launch Base act 1 minibosses defeated
+		jsr	(Archipelago_Check_Location).l
 		lea	(Child6_IncLevY).l,a2
 		jsr	(CreateChild6_Simple).l
 		lea	ChildObjDat_8D27A(pc),a2
