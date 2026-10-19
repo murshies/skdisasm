@@ -40725,6 +40725,18 @@ Obj_MonitorMain:
 		moveq	#p2_standing_bit,d6
 		bsr.w	SolidObject_Monitor_Tails
 		jsr	(Add_SpriteToCollisionResponseList).l
+		; Archipelago: show static if this monitor is a location that hasn't
+		; been checked yet. This is checked every frame, since the client
+		; marks the monitor after the act loads, which can be after the
+		; monitor itself is loaded.
+		move.w	respawn_addr(a0),d0	; Get address in respawn table
+		beq.s	.animate		; If it's zero, it isn't remembered
+		movea.w	d0,a2
+		btst	#Archipelago_Respawn_Unchecked_bit,(a2)
+		beq.s	.animate
+		clr.b	anim(a0)		; Static
+
+.animate:
 		lea	(Ani_Monitor).l,a1
 		bsr.w	Animate_Sprite
 
@@ -40872,6 +40884,16 @@ Obj_MonitorBreak:
 Obj_MonitorSpawnIcon:
 		andi.b	#3,status(a0)
 		move.b	#0,collision_flags(a0)
+		; Archipelago: a monitor that's a location that hasn't been checked
+		; yet only gives the check, so there are no contents to spawn. The
+		; static icon would otherwise act like a Robotnik monitor.
+		move.w	respawn_addr(a0),d0	; Get address in respawn table
+		beq.s	.spawnicon		; If it's zero, it isn't remembered
+		movea.w	d0,a2
+		btst	#Archipelago_Respawn_Unchecked_bit,(a2)
+		bne.s	.skipiconcreation
+
+.spawnicon:
 		bsr.w	AllocateObjectAfterCurrent
 		bne.s	.skipiconcreation
 		move.l	#Obj_MonitorContents,(a1)
@@ -128609,6 +128631,15 @@ Map_GumballBonus:
 ; ---------------------------------------------------------------------------
 
 Obj_SSEntryRing:
+		; Archipelago: big rings that are locations which have already been
+		; checked don't spawn
+		move.w	respawn_addr(a0),d0
+		beq.s	+				; If it's zero, it isn't from the object layout
+		movea.w	d0,a1
+		btst	#Archipelago_Respawn_Checked_bit,(a1)
+		beq.s	+
+		jmp	(Delete_Current_Sprite).l	; The respawn entry stays marked as loaded, so the ring doesn't come back
++
 		move.b	subtype(a0),d0
 		move.l	(Collected_special_ring_array).w,d1
 		btst	d0,d1
@@ -128622,6 +128653,15 @@ loc_6167C:
 		move.b	routine(a0),d0
 		move.w	SSEntryRing_Index(pc,d0.w),d1
 		jsr	SSEntryRing_Index(pc,d1.w)
+		; Archipelago: the client marks the ring after the act loads, which
+		; can be after the ring itself is loaded, so check again every frame
+		move.w	respawn_addr(a0),d0
+		beq.s	+				; If it's zero, it isn't from the object layout
+		movea.w	d0,a1
+		btst	#Archipelago_Respawn_Checked_bit,(a1)
+		beq.s	+
+		bset	#5,$38(a0)			; Delete the ring, the same way as after it's collected
++
 		bra.w	SSEntryRing_Display
 ; ---------------------------------------------------------------------------
 SSEntryRing_Index:
@@ -128696,6 +128736,15 @@ loc_61794:
 		bset	d0,d1
 		move.l	d1,(Collected_special_ring_array).w	; Set the special stage ring as collected
 		bset	#5,$38(a0)
+		; Archipelago: a big ring that's a location that hasn't been checked
+		; yet only gives the check, not the rings
+		move.w	respawn_addr(a0),d0
+		beq.s	+				; If it's zero, it isn't from the object layout
+		movea.w	d0,a1
+		btst	#Archipelago_Respawn_Unchecked_bit,(a1)
+		beq.s	+
+		rts
++
 		moveq	#50,d0				; Add 50 rings
 		jmp	(AddRings).l
 ; ---------------------------------------------------------------------------
