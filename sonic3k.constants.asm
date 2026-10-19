@@ -266,6 +266,14 @@ Archipelago_Loc_SSZ_Mecha_Sonic_2 = $8003	; Sonic's Sky Sanctuary, second Mecha 
 Archipelago_Loc_SS_Emerald = $8100		; + special stage number (0-13), special stage completed
 Archipelago_Loc_SS_Perfect = $8200		; + special stage number (0-13), all rings collected in a special stage
 
+; Archipelago bits in the object respawn table entries of item boxes and big
+; rings. The client sets these every time an act is loaded (the game clears the
+; respawn table on every level load), for the objects that are locations in the
+; player's slot. The game only uses bit 7 (object loaded) of these entries, plus
+; bit 0 (broken) for monitors, so these bits are free.
+Archipelago_Respawn_Unchecked_bit = 6	; location not checked yet: no vanilla reward, and monitors show static
+Archipelago_Respawn_Checked_bit = 5	; big ring location already checked: the ring doesn't spawn
+
 ; Archipelago item mailbox values. See Archipelago_Item_Integrity.
 Archipelago_Item_Integrity_Value = $4149	; 'AI'
 Archipelago_Item_Super_Ring = 1			; 10 rings
