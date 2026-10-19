@@ -274,6 +274,15 @@ Archipelago_Loc_SS_Perfect = $8200		; + special stage number (0-13), all rings c
 Archipelago_Respawn_Unchecked_bit = 6	; location not checked yet: no vanilla reward, and monitors show static
 Archipelago_Respawn_Checked_bit = 5	; big ring location already checked: the ring doesn't spawn
 
+; Archipelago bits in Archipelago_Ending_Zones, one per goal zone. The client
+; sets a goal zone's bit when completing it would complete every goal (i.e.
+; every other goal zone has already been completed). When the bit is set,
+; completing the zone plays the ending like the base game. Otherwise, the
+; player is warped back to the save select screen.
+Archipelago_Ending_Death_Egg_bit = 0
+Archipelago_Ending_Doomsday_bit = 1
+Archipelago_Ending_Knuckles_SSZ_bit = 2
+
 ; Archipelago item mailbox values. See Archipelago_Item_Integrity.
 Archipelago_Item_Integrity_Value = $4149	; 'AI'
 Archipelago_Item_Super_Ring = 1			; 10 rings
@@ -385,7 +394,8 @@ Archipelago_Item_Request_ID	ds.l 1		; written by the client
 Archipelago_Item_Request_Type	ds.w 1		; written by the client
 Save_pointer :=			*		; S3 uses a different address
 				ds.l 1			; pointer to the active save slot in 1 player mode
-			ds.w 1				; unused
+Archipelago_Ending_Zones	ds.b 1		; written by the client, see Archipelago_Ending_Doomsday_bit
+			ds.b 1				; unused
 Emerald_flicker_flag		ds.w 1			; controls the emerald flicker in save screen and special stage results.
 ; Archipelago location check buffer.
 ; To avoid losing checks when a player does them, as well as to make it much

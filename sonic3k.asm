@@ -16082,6 +16082,20 @@ locret_C56E:
 ; ---------------------------------------------------------------------------
 
 SaveScreen:
+		; Archipelago: the save screen can be reached from a level (see
+		; WarpToSaveSelect and Pause_Loop), so reset the level state that would
+		; otherwise carry over into the next level started from here
+		clr.b	(Current_zone_and_act).w
+		clr.b	(Apparent_zone_and_act).w
+		clr.b	(Saved_zone_and_act).w
+		clr.b	(Saved_apparent_zone_and_act).w
+		clr.b	(Saved2_zone_and_act).w
+		clr.b	(Saved2_apparent_zone_and_act).w
+		clr.b	(Last_star_post_hit).w
+		clr.b	(Special_bonus_entry_flag).w
+		clr.w	(Player_mode).w
+		clr.b	(Water_full_screen_flag).w	; Must be cleared before fading, so the normal palette is used
+		clr.b	(Water_flag).w		; Both water flags cleared
 		jsr	(Pal_FadeToBlack).l
 		move	#$2700,sr
 		move.w	(VDP_reg_1_command).w,d0
@@ -165421,6 +165435,15 @@ loc_7BCB0:
 		movea.w	$44(a0),a1
 		btst	#7,status(a1)
 		beq.w	locret_7B448
+		btst	#Archipelago_Ending_Knuckles_SSZ_bit,(Archipelago_Ending_Zones).w
+		bne.s	.ending
+		st	(SRAM_mask_interrupts_flag).w
+		jsr	(SaveGame).l
+		jmp	(WarpToSaveSelect_ActComplete).l	; Knuckles' Sky Sanctuary complete
+
+.ending:
+		; This was the last goal, so play the ending like the base game. The
+		; act completion is sent once the ending starts, in SSZ2_ScreenEvent.
 		move.l	#loc_7BCFC,(a0)
 		move.w	#(2*60)-1,$2E(a0)
 		st	(_unkFAA2).w
@@ -166167,7 +166190,7 @@ loc_7C578:
 		moveq	#signextendB(sfx_MechaLand),d0
 		jsr	(Play_SFX).l
 		lea	byte_7D5B6(pc),a1
-		jsr	Set_Raw_Animation(pc)
+		jsr	(Set_Raw_Animation).l	; Out of pc-relative range with the Archipelago changes
 		bra.w	loc_7BB7C
 ; ---------------------------------------------------------------------------
 
@@ -171941,17 +171964,21 @@ loc_803D6:
 		st	(SRAM_mask_interrupts_flag).w
 		jsr	(SaveGame).l
 		jsr	(Go_Delete_Sprite).l
-		cmpi.w	#2,(Player_mode).w
-		bhs.s	loc_8040C
-		cmpi.b	#7,(Chaos_emerald_count).w
+		btst	#Archipelago_Ending_Death_Egg_bit,(Archipelago_Ending_Zones).w
 		bne.s	loc_8040C
-		jmp	(WarpToSaveSelect_ActComplete).l	; Death Egg complete - to Doomsday
+		jmp	(WarpToSaveSelect_ActComplete).l	; Death Egg complete
 ; ---------------------------------------------------------------------------
 
 loc_8040C:
+		; This was the last goal, so play the ending like the base game. The
+		; base game goes to Doomsday instead if Sonic has all of the chaos
+		; emeralds, but Doomsday is its own goal zone in Archipelago.
+		move.w	#Archipelago_Loc_Act_Complete,d0
+		jsr	(Archipelago_Check_Location).l
 		cmpi.w	#3,(Player_mode).w
 		beq.s	loc_8041E
-		jmp	(WarpToSaveSelect_ActComplete).l	; Death Egg complete - to credits
+		move.w	#$D01,d0
+		jmp	(StartNewLevel).l
 ; ---------------------------------------------------------------------------
 
 loc_8041E:
@@ -174237,7 +174264,17 @@ loc_81CA4:
 		jsr	(SaveGame).l
 		move.w	#Archipelago_Loc_Boss,d0
 		jsr	(Archipelago_Check_Location).l
+		btst	#Archipelago_Ending_Doomsday_bit,(Archipelago_Ending_Zones).w
+		bne.s	.ending
 		jsr	(WarpToSaveSelect_ActComplete).l	; Doomsday complete
+		jmp	(Delete_Current_Sprite).l
+
+.ending:
+		; This was the last goal, so play the ending like the base game
+		move.w	#Archipelago_Loc_Act_Complete,d0
+		jsr	(Archipelago_Check_Location).l
+		move.w	#$D01,d0
+		jsr	(StartNewLevel).l
 		jmp	(Delete_Current_Sprite).l
 ; ---------------------------------------------------------------------------
 
@@ -181078,17 +181115,6 @@ WarpToSaveSelect_ActComplete:
 		jsr	(Archipelago_Check_Location).l
 
 WarpToSaveSelect:
-		clr.b	(Current_zone_and_act).w
-		clr.b	(Apparent_zone_and_act).w
-		clr.b	(Saved_zone_and_act).w
-		clr.b	(Saved_apparent_zone_and_act).w
-		clr.b	(Saved2_zone_and_act).w
-		clr.b	(Saved2_apparent_zone_and_act).w
-		clr.b	(Last_star_post_hit).w
-		clr.b	(Special_bonus_entry_flag).w
-		clr.w	(Player_mode).w
-		clr.b	(Water_full_screen_flag).w
-		clr.b	(Water_flag).w		; Both water flags cleared
 		move.b	#$4C,(Game_mode).w		; Game Mode 4C is the save select
 		moveq	#signextendB(sfx_EnterSS),d0
 		jmp	(Play_SFX).l
