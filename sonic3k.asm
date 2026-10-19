@@ -16082,6 +16082,20 @@ locret_C56E:
 ; ---------------------------------------------------------------------------
 
 SaveScreen:
+		; Archipelago: the save screen can be reached from a level (see
+		; WarpToSaveSelect and Pause_Loop), so reset the level state that would
+		; otherwise carry over into the next level started from here
+		clr.b	(Current_zone_and_act).w
+		clr.b	(Apparent_zone_and_act).w
+		clr.b	(Saved_zone_and_act).w
+		clr.b	(Saved_apparent_zone_and_act).w
+		clr.b	(Saved2_zone_and_act).w
+		clr.b	(Saved2_apparent_zone_and_act).w
+		clr.b	(Last_star_post_hit).w
+		clr.b	(Special_bonus_entry_flag).w
+		clr.w	(Player_mode).w
+		clr.b	(Water_full_screen_flag).w	; Must be cleared before fading, so the normal palette is used
+		clr.b	(Water_flag).w		; Both water flags cleared
 		jsr	(Pal_FadeToBlack).l
 		move	#$2700,sr
 		move.w	(VDP_reg_1_command).w,d0
@@ -181101,17 +181115,6 @@ WarpToSaveSelect_ActComplete:
 		jsr	(Archipelago_Check_Location).l
 
 WarpToSaveSelect:
-		clr.b	(Current_zone_and_act).w
-		clr.b	(Apparent_zone_and_act).w
-		clr.b	(Saved_zone_and_act).w
-		clr.b	(Saved_apparent_zone_and_act).w
-		clr.b	(Saved2_zone_and_act).w
-		clr.b	(Saved2_apparent_zone_and_act).w
-		clr.b	(Last_star_post_hit).w
-		clr.b	(Special_bonus_entry_flag).w
-		clr.w	(Player_mode).w
-		clr.b	(Water_full_screen_flag).w
-		clr.b	(Water_flag).w		; Both water flags cleared
 		move.b	#$4C,(Game_mode).w		; Game Mode 4C is the save select
 		moveq	#signextendB(sfx_EnterSS),d0
 		jmp	(Play_SFX).l
