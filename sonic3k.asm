@@ -10849,21 +10849,11 @@ loc_85F4:
 loc_8606:
 		moveq	#0,d0
 		move.b	(Current_special_stage).w,d0
-		cmpi.b	#7,d3
-		bhs.s	loc_8630
-		moveq	#5,d1
-		lea	(Collected_emeralds_array).w,a1
-		add.b	d2,d2
-
-loc_861A:
-		cmp.b	(a1,d0.w),d2
-		beq.s	loc_8630
-		addq.w	#1,d0
-		cmpi.w	#7,d0
-		blo.s	loc_861A
-		moveq	#0,d0
-		dbf	d1,loc_861A
-		moveq	#7,d0
+		; Archipelago: special stages are only entered from the save select
+		; screen, so always play the selected stage. The base game skips
+		; ahead to the next stage whose emerald hasn't been collected, but
+		; the client fills in the save file's emeralds in order, regardless
+		; of which stages have been played.
 
 loc_8630:
 		andi.w	#7,d0
