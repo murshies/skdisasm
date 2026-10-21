@@ -23723,8 +23723,8 @@ Sonic_CheckTransform:
 		bhs.s	loc_119E8			; if yes, branch
 		cmpi.b	#7,(Chaos_emerald_count).w	; does Sonic have all 7 Chaos Emeralds?
 		blo.w	Sonic_FireShield		; if not, branch
-		tst.b	(Emeralds_converted_flag).w
-		bne.w	Sonic_FireShield
+		; Archipelago: Super Sonic stays available after Chaos Emeralds have
+		; been converted to Super Emeralds, so Emeralds_converted_flag isn't checked
 
 loc_119E8:
 		cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
@@ -32818,8 +32818,8 @@ Knux_Test_For_Glide:
 		bhs.s	loc_1785E
 		cmpi.b	#7,(Chaos_emerald_count).w
 		blo.s	loc_1786C
-		tst.b	(Emeralds_converted_flag).w
-		bne.s	loc_1786C
+		; Archipelago: Super Knuckles stays available after Chaos Emeralds have
+		; been converted to Super Emeralds, so Emeralds_converted_flag isn't checked
 
 loc_1785E:
 		cmpi.w	#50,(Ring_count).w
