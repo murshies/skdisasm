@@ -17159,6 +17159,10 @@ loc_D5DE:
 		bmi.s	Select_Level_Non_Special_Stage
 		move.b	#$34,(Game_mode).w
 		move.b	#0,(SK_special_stage_flag).w
+		; The active character is normally set from Player_option during
+		; level load, which is skipped when going straight to a special
+		; stage. Set it here so the stage uses the save file's character.
+		move.w	(Player_option).w,(Player_mode).w
 		; sub_DA4E only maps the 14 normal levels, so it gives an invalid
 		; zone for special stages. Use Angel Island for the Sonic 3 ones.
 		move.w	#0,(Current_zone_and_act).w
