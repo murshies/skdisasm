@@ -1556,10 +1556,14 @@ Pause_Loop:
 		move.b	#$10,(V_int_routine).w
 		bsr.w	Wait_VSync
 		btst	#button_A,(Ctrl_1_pressed).w
-		beq.s	Pause_SloMoCheck	; branch if A isn't pressed
+		beq.s	Pause_RestartCheck	; branch if A isn't pressed
 		move.b	#$4C,(Game_mode).w	; set to save select screen
 		nop
 		bra.s	Pause_ResumeMusic
+
+Pause_RestartCheck:
+		btst	#button_B,(Ctrl_1_pressed).w
+		bne.w	Pause_RestartAct	; branch if B is pressed
 
 Pause_SloMoCheck:
 		tst.b	(Slow_motion_flag).w
@@ -1609,6 +1613,36 @@ Pause_FrameAdvance:
 		move.b	#$80,(Z80_RAM+zPauseFlag).l	; Unpause music
 		startZ80
 		rts	; advance by a single frame
+; ---------------------------------------------------------------------------
+
+; Archipelago: pressing B restarts the current act from its beginning
+Pause_RestartAct:
+		cmpi.b	#$C,(Game_mode).w	; only restart while a level is being played (not during the title card or a special stage)
+		bne.w	Pause_SloMoCheck
+		cmpi.b	#$13,(Current_zone).w
+		blo.s	.restart
+		cmpi.b	#$15,(Current_zone).w
+		bls.w	Pause_SloMoCheck	; bonus stages can't be restarted, since they return to the level they were entered from
+
+.restart:
+		; Use the apparent act, so that e.g. AIZ1 after the fire (internally
+		; act 2) restarts act 1, which is the act the player sees
+		move.w	(Apparent_zone_and_act).w,d0
+		; The Lava Reef and Death Egg final bosses have their own zone ids,
+		; but count as act 2 of their zones, so restart act 2 instead
+		cmpi.w	#$1600,d0
+		bne.s	.notlrzboss
+		move.w	#$901,d0
+		bra.s	.start
+
+.notlrzboss:
+		cmpi.w	#$1700,d0
+		bne.s	.start
+		move.w	#$B01,d0
+
+.start:
+		jsr	(StartNewLevel).l	; also clears the star post, so the act starts from the beginning
+		bra.w	Pause_ResumeMusic
 ; End of function Pause_Game
 
 ; ---------------------------------------------------------------------------
