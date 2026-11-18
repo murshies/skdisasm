@@ -17080,10 +17080,17 @@ loc_D4EE:
 
 loc_D508:
 		btst	#button_up,d0
-		beq.s	loc_D518
+		beq.s	Archipelago_Check_Act_Selection
 		moveq	#signextendB(sfx_Switch),d2
 		move.w	#1,d4
 		jsr		(SaveSelect_Next_Unlocked).l
+		bra.s	loc_D518
+
+Archipelago_Check_Act_Selection:
+		btst	#button_C,d0
+		beq.s	loc_D518
+		moveq	#signextendB(sfx_Switch),d2
+		jsr		(SaveSelect_Next_Act).l
 
 loc_D518:
 		move.w	d1,$36(a0)
@@ -17107,7 +17114,7 @@ loc_D540:
 		tst.w	(Events_bg+$12).w
 		bne.w	loc_D44A
 		move.b	(Ctrl_1_pressed).w,d0
-		andi.w	#button_A_mask|button_C_mask|button_start_mask,d0
+		andi.w	#button_A_mask|button_start_mask,d0
 		beq.w	loc_D44A
 		move.w	4(a1),(Collected_special_ring_array+2).w
 		move.b	3(a1),d0
@@ -17249,6 +17256,30 @@ Set_ChildSprites:
 
 loc_D6CA:
 		jmp	(Draw_Sprite).l
+
+; =============== S U B R O U T I N E =======================================
+
+;; Parameters:
+;; d1: contains the current level selected
+;; This subroutine cycles the player's act selection to the next option, if one
+;; exists. It directly modifies Current_act as its output.
+SaveSelect_Next_Act:
+	;; Filter out special stages and other zones which do not have a second
+	;; act.
+	cmpi.w	#10,d1
+	bmi.s	SaveSelect_Next_Act_Check_Cycle ; All zones below Hidden Palace have two acts
+	cmpi.w	#12,d1							; Is this Death Egg?
+	bmi.s	SaveSelect_Next_Act_Check_Cycle ; Yes, cycle the act
+	bra.s	SaveSelect_Next_Act_Done		; Everything else is a one act zone or a special stage
+SaveSelect_Next_Act_Check_Cycle:
+	cmpi.b	#0,(Current_act).w
+	beq.s	SaveSelect_Next_Act_Select_Act_2
+	move.b	#0,(Current_act).w	; Otherwise, act 1
+	bra.s	SaveSelect_Next_Act_Done
+SaveSelect_Next_Act_Select_Act_2
+	move.b	#1,(Current_act).w
+SaveSelect_Next_Act_Done:
+	rts
 
 ; =============== S U B R O U T I N E =======================================
 
