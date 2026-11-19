@@ -17127,8 +17127,12 @@ loc_D540:
 
 loc_D57A:
 		jsr	sub_DA4E(pc)
-		move.w	d0,(Current_zone_and_act).w
-		move.w	d0,(Apparent_zone_and_act).w
+		;; Only move the higher byte (the zone) into Current/Apparent zone, the
+		;; act is handled above by SaveSelect_Next_Act.
+		;; TODO: I haven't actually tested this yet.
+		lsr.w	#8,d0
+		move.b	d0,(Current_zone).w
+		move.b	d0,(Apparent_zone).w
 		moveq	#0,d0
 		move.b	2(a1),d0
 		lsr.b	#4,d0
