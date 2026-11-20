@@ -17129,7 +17129,6 @@ loc_D57A:
 		jsr	sub_DA4E(pc)
 		;; Only move the higher byte (the zone) into Current/Apparent zone, the
 		;; act is handled above by SaveSelect_Next_Act.
-		;; TODO: I haven't actually tested this yet.
 		lsr.w	#8,d0
 		move.b	d0,(Current_zone).w
 		move.b	d0,(Apparent_zone).w
@@ -17273,15 +17272,17 @@ SaveSelect_Next_Act:
 	cmpi.w	#10,d1
 	bmi.s	SaveSelect_Next_Act_Check_Cycle ; All zones below Hidden Palace have two acts
 	cmpi.w	#12,d1							; Is this Death Egg?
-	bmi.s	SaveSelect_Next_Act_Check_Cycle ; Yes, cycle the act
+	beq.s	SaveSelect_Next_Act_Check_Cycle ; Yes, cycle the act
 	bra.s	SaveSelect_Next_Act_Done		; Everything else is a one act zone or a special stage
 SaveSelect_Next_Act_Check_Cycle:
 	cmpi.b	#0,(Current_act).w
 	beq.s	SaveSelect_Next_Act_Select_Act_2
 	move.b	#0,(Current_act).w	; Otherwise, act 1
+	move.b	#0,(Apparent_act).w
 	bra.s	SaveSelect_Next_Act_Done
 SaveSelect_Next_Act_Select_Act_2
 	move.b	#1,(Current_act).w
+	move.b	#1,(Apparent_act).w
 SaveSelect_Next_Act_Done:
 	rts
 
@@ -17296,6 +17297,9 @@ SaveSelect_Next_Act_Done:
 ;; This subroutine assumes that at least one level is unlocked
 ;; d5, d7, and a5 are used for intermediate value computation
 SaveSelect_Next_Unlocked:
+		;; Reset act selection
+		move.b	#0,(Current_act).w
+		move.b	#0,(Apparent_act).w
 		;; It's possible that the current character has no zones
 		;; unlocked. Check for that first before attempting to iterate through
 		;; the bitmask.
